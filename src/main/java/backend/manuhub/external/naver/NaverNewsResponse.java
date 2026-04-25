@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -12,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 public class NaverNewsResponse {
 
-    private List<NaverNewsItem> items;
+    private List<NaverNewsItem> items = new ArrayList<>();
 
     @Getter
     @NoArgsConstructor
