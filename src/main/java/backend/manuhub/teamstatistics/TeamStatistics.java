@@ -23,14 +23,18 @@ public class TeamStatistics {
     @Column(name = "team_name")
     private String teamName;
 
+    @NotNull
+    @Column(name = "team_id")
+    private Long teamId;
+
     // 시즌 (시작 연도)
     @NotNull
     private Integer season;
 
     // 승 / 무 / 패
-    private Integer wins;
-    private Integer draws;
-    private Integer loses;
+    private Integer win;
+    private Integer draw;
+    private Integer lose;
 
     // 득점
     @Column(name = "goals_for")
@@ -44,30 +48,35 @@ public class TeamStatistics {
     private Integer points;
 
     // 순위
-    private Integer rank;
+    @Column(name = "team_rank")
+    private Integer teamRank;
 
-    public static TeamStatistics create(Integer season, Integer wins, Integer draws, Integer loses, Integer goalsFor, Integer goalsAgainst, Integer points, Integer rank) {
+    public static TeamStatistics create(String teamName, Long teamId, Integer season, Integer win, Integer draw, Integer lose, Integer goalsFor, Integer goalsAgainst, Integer points, Integer teamRank) {
         return TeamStatistics.builder()
+                .teamName(teamName)
+                .teamId(teamId)
                 .season(season)
-                .wins(wins)
-                .draws(draws)
-                .loses(loses)
+                .win(win)
+                .draw(draw)
+                .lose(lose)
                 .goalsFor(goalsFor)
                 .goalsAgainst(goalsAgainst)
                 .points(points)
-                .rank(rank)
+                .teamRank(teamRank)
                 .build();
     }
 
     @Builder
-    private TeamStatistics(Integer season, Integer wins, Integer draws, Integer loses, Integer goalsFor, Integer goalsAgainst, Integer points, Integer rank) {
+    private TeamStatistics(String teamName, Long teamId, Integer season, Integer win, Integer draw, Integer lose, Integer goalsFor, Integer goalsAgainst, Integer points, Integer teamRank) {
+        this.teamName = teamName;
+        this.teamId = teamId;
         this.season = season;
-        this.wins = wins;
-        this.draws = draws;
-        this.loses = loses;
+        this.win = win;
+        this.draw = draw;
+        this.lose = lose;
         this.goalsFor = goalsFor;
         this.goalsAgainst = goalsAgainst;
         this.points = points;
-        this.rank = rank;
+        this.teamRank = teamRank;
     }
 }
