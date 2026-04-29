@@ -9,7 +9,15 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
 
-    NEWS_NOT_FOUND(HttpStatus.NOT_FOUND, "NEWS_NOT_FOUND", "해당 뉴스를 찾을 수 없습니다."),
+    /**
+     * naver api
+     */
+    NAVER_API_CLIENT_ERROR(HttpStatus.BAD_GATEWAY, "NAVER_API_CLIENT_ERROR", "네이버 API 요청 오류입니다."),
+    NAVER_API_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "NAVER_API_SERVER_ERROR", "네이버 API 서버 오류입니다."),
+
+    /**
+     * common
+     */
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR","서버 내부 오류입니다.");
 
     private final HttpStatus httpStatus;
