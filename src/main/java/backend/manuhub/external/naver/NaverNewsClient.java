@@ -1,7 +1,8 @@
 package backend.manuhub.external.naver;
 
-import backend.manuhub.exception.naver.NaverApiClientException;
-import backend.manuhub.exception.naver.NaverApiServerException;
+import backend.manuhub.exception.ApiClientException;
+import backend.manuhub.exception.ApiServerException;
+import backend.manuhub.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,9 +34,9 @@ public class NaverNewsClient {
                 .header("X-Naver-Client-Secret", clientSecret)
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
-                    throw new NaverApiClientException();})
+                    throw new ApiClientException(ErrorCode.NAVER_API_CLIENT_ERROR);})
                 .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-                    throw new NaverApiServerException();})
+                    throw new ApiServerException(ErrorCode.NAVER_API_SERVER_ERROR);})
                 .body(NaverNewsResponse.class)
                 .getItems();
     }
