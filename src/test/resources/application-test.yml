@@ -14,3 +14,4 @@ external:
   naver:
     client-id: test
     client-secret: test
+    base-url: test
