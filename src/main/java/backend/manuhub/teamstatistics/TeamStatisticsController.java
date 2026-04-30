@@ -9,7 +9,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/team/statistics")
+@RequestMapping("/api/team/statistics")
 public class TeamStatisticsController {
 
     private final TeamStatisticsService teamStatisticsService;
