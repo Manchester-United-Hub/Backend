@@ -1,8 +1,8 @@
 package backend.manuhub.external.teamstatistics;
 
 import backend.manuhub.exception.ErrorCode;
-import backend.manuhub.exception.teamstatistics.ApiClientException;
-import backend.manuhub.exception.teamstatistics.ApiServerException;
+import backend.manuhub.exception.ApiClientException;
+import backend.manuhub.exception.ApiServerException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
