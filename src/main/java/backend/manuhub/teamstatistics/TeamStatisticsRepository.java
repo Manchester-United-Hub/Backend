@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface TeamStatisticsRepository extends JpaRepository<TeamStatistics, Long> {
     public List<TeamStatistics> findAllByOrderBySeasonAsc();
+
+    boolean existsBySeason(Integer season);
 }
