@@ -1,7 +1,7 @@
 package backend.manuhub.external.teamstatistics;
 
 import backend.manuhub.exception.ErrorCode;
-import backend.manuhub.exception.teamstatistics.ApiInvalidResponseException;
+import backend.manuhub.exception.ApiInvalidResponseException;
 import backend.manuhub.teamstatistics.TeamStatistics;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
