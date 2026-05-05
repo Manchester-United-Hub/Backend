@@ -23,10 +23,9 @@ public class NewsService {
         List<NewsItem> newsItemsToSave = filterRecentNews(newsItems);
         saveAll(newsItemsToSave);
     }
-
     private List<NewsItem> fetchNewsItems(){
         return naverNewsClient.fetchNews().stream()
-                .map(n -> NewsItem.create(n.getTitle(), n.getOriginalLink(), n.getLink(), n.getDescription(), n.getPublishedAt()))
+                .map(n -> NewsItem.create(n.title(), n.originalLink(), n.link(), n.description(), n.publishedAt()))
                 .filter(NewsItem::isValid)
                 .toList();
     }
@@ -37,16 +36,14 @@ public class NewsService {
                 .orElse(LocalDateTime.MIN);
 
         return newsItems.stream()
-                .filter(n -> !n.getPublishedAt().isBefore(lastPublishedAt))
+                .filter(n -> !n.publishedAt().isBefore(lastPublishedAt))
                 .toList();
     }
 
-
-
     private void saveAll(List<NewsItem> newsItemsToSave){
         List<News> newsList = newsItemsToSave.stream()
-                .filter(n -> !newsRepository.existsByOriginalLink(n.getOriginalLink()))
-                .map(n -> News.create(n.getTitle(), n.getOriginalLink(), n.getLink(), n.getDescription(), n.getPublishedAt()))
+                .filter(n -> !newsRepository.existsByOriginalLink(n.originalLink()))
+                .map(n -> News.create(n.title(), n.originalLink(), n.link(), n.description(), n.publishedAt()))
                 .toList();
 
         newsRepository.saveAll(newsList);

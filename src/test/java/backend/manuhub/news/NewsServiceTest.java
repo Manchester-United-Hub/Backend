@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,12 +40,7 @@ public class NewsServiceTest {
     }
 
     private NaverNewsResponse.NaverNewsItem createNaverNewsItem(String title, String originalLink, String pubDate) {
-        NaverNewsResponse.NaverNewsItem item = new NaverNewsResponse.NaverNewsItem();
-        ReflectionTestUtils.setField(item, "title", title);
-        ReflectionTestUtils.setField(item, "originalLink", originalLink);
-        ReflectionTestUtils.setField(item, "link", "https://naver.com");
-        ReflectionTestUtils.setField(item, "description", "내용");
-        ReflectionTestUtils.setField(item, "publishedAt", pubDate);
+        NaverNewsResponse.NaverNewsItem item = new NaverNewsResponse.NaverNewsItem(title, originalLink, "https://naver.com", "내용", pubDate);
         return item;
     }
 

@@ -9,6 +9,10 @@ spring:
     hibernate:
       ddl-auto: create
 
+  task:
+    scheduling:
+      enabled: false
+
 
 external:
   naver:

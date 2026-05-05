@@ -1,5 +1,6 @@
 package backend.manuhub.news;
 
+import backend.manuhub.common.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
 @Getter
 @Table(name = "news")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class News {
+public class News extends BaseTimeEntity {
 
     @Id
     @Column(name = "news_id")
