@@ -12,8 +12,6 @@ import org.springframework.web.client.RestClient;
 
 import java.util.List;
 
-import static backend.manuhub.external.naver.NaverNewsResponse.NaverNewsItem;
-
 @Component
 @RequiredArgsConstructor
 public class NaverNewsClient {
@@ -26,7 +24,7 @@ public class NaverNewsClient {
     @Qualifier("naverRestClient")
     private final RestClient restClient;
 
-    public List<NaverNewsItem> fetchNews(){
+    public List<NaverNewsResponse.NaverNewsItem> fetchNews(){
 
         return restClient.get()
                 .uri("/v1/search/news.json?query=맨체스터유나이티드")
@@ -38,6 +36,6 @@ public class NaverNewsClient {
                 .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
                     throw new ApiServerException(ErrorCode.NAVER_API_SERVER_ERROR);})
                 .body(NaverNewsResponse.class)
-                .getItems();
+                .items();
     }
 }

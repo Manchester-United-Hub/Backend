@@ -15,7 +15,7 @@ public class NewsItemTest {
     void cleanHtmlTags() {
         NewsItem item = NewsItem.create("제목", "url", "url", "<b>내용</b>", "Wed, 29 Apr 2026 14:56:00 +0900");
 
-        assertThat(item.getDescription()).isEqualTo("내용");
+        assertThat(item.description()).isEqualTo("내용");
     }
 
     @Test
@@ -24,7 +24,7 @@ public class NewsItemTest {
         NewsItem item = NewsItem.create("&quot;제목&quot;", "url", "url", "내용",
                 "Wed, 29 Apr 2026 14:56:00 +0900");
 
-        assertThat(item.getTitle()).isEqualTo("\"제목\"");
+        assertThat(item.title()).isEqualTo("\"제목\"");
     }
 
     @Test
@@ -32,7 +32,7 @@ public class NewsItemTest {
     void parsePubDate() {
         NewsItem item = NewsItem.create("제목", "url", "url", "내용", "Wed, 29 Apr 2026 14:56:00 +0900");
 
-        assertThat(item.getPublishedAt()).isEqualTo(LocalDateTime.of(2026, 4, 29, 14, 56));
+        assertThat(item.publishedAt()).isEqualTo(LocalDateTime.of(2026, 4, 29, 14, 56));
     }
 
     @Test
