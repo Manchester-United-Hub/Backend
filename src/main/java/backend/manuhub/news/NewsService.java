@@ -1,5 +1,7 @@
 package backend.manuhub.news;
 
+import backend.manuhub.exception.ErrorCode;
+import backend.manuhub.exception.InvalidRequestException;
 import backend.manuhub.external.naver.NaverNewsClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,13 @@ public class NewsService {
         List<NewsItem> newsItemsToSave = filterRecentNews(newsItems);
         saveAll(newsItemsToSave);
     }
+
+    public NewsListGetResponse getNewsList(LocalDateTime cursorAt, Long cursorId, int size) {
+        validateCursor(cursorAt, cursorId);
+        List<News> findNewsList = newsRepository.findNewsByCursor(cursorAt, cursorId, size);
+        return NewsListGetResponse.from(findNewsList);
+    }
+
     private List<NewsItem> fetchNewsItems(){
         return naverNewsClient.fetchNews().stream()
                 .map(n -> NewsItem.create(n.title(), n.originalLink(), n.link(), n.description(), n.publishedAt()))
@@ -47,5 +56,11 @@ public class NewsService {
                 .toList();
 
         newsRepository.saveAll(newsList);
+    }
+
+    private void validateCursor(LocalDateTime cursorAt, Long cursorId) {
+        if ((cursorAt == null) != (cursorId == null)) {
+            throw new InvalidRequestException(ErrorCode.INVALID_REQUEST_ERROR);
+        }
     }
 }
