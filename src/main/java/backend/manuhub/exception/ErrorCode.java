@@ -18,6 +18,9 @@ public enum ErrorCode {
     /**
      * common
      */
+    NOT_FOUND_ERROR(HttpStatus.NOT_FOUND, "NOT_FOUND_ERROR", "요청한 리소스를 찾을 수 없습니다."),
+    METHOD_NOT_ALLOWED_ERROR(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED_ERROR", "허용되지 않는 HTTP 메서드입니다."),
+    INVALID_REQUEST_ERROR(HttpStatus.BAD_REQUEST, "INVALID_REQUEST_ERROR", "잘못된 요청입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR","서버 내부 오류입니다.");
 
     private final HttpStatus httpStatus;

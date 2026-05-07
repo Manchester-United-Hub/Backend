@@ -20,10 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
-@DisplayName("NewsService 테스트")
+@DisplayName("NewsUpdateService 테스트")
 @ActiveProfiles("test")
 @SpringBootTest
-public class NewsServiceTest {
+public class NewsUpdateServiceTest {
 
     @MockitoBean
     private NaverNewsClient naverNewsClient;

@@ -2,13 +2,39 @@ package backend.manuhub.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        ErrorCode errorCode = ErrorCode.INVALID_REQUEST_ERROR;
+        log.error(">>> ExceptionHandler -> MethodArgumentTypeMismatchException. code = {} ", errorCode.getCode(), e);
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ErrorResponse.from(errorCode));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException e) {
+        ErrorCode errorCode = ErrorCode.NOT_FOUND_ERROR;
+        log.warn(">>> ExceptionHandler -> NoResourceFoundException. code = {} ", errorCode.getCode(), e);
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ErrorResponse.from(errorCode));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
+        ErrorCode errorCode = ErrorCode.METHOD_NOT_ALLOWED_ERROR;
+        log.warn(">>> ExceptionHandler -> HttpRequestMethodNotSupportedException. code = {} ", errorCode.getCode(), e);
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ErrorResponse.from(errorCode));
+    }
 
     @ExceptionHandler(ManuHubException.class)
     public ResponseEntity<ErrorResponse> handleManuHubException(ManuHubException e) {
