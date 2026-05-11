@@ -5,6 +5,7 @@ import backend.manuhub.exception.InvalidRequestException;
 import backend.manuhub.external.naver.NaverNewsClient;
 import backend.manuhub.news.dto.NewsItem;
 import backend.manuhub.news.dto.NewsListGetResponse;
+import backend.manuhub.news.dto.NewsRecentGetResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,11 @@ public class NewsService {
         validateCursor(cursorAt, cursorId);
         List<News> findNewsList = newsRepository.findNewsByCursor(cursorAt, cursorId, size);
         return NewsListGetResponse.from(findNewsList);
+    }
+
+    public List<NewsRecentGetResponse> getRecentNewsList() {
+        List<News> recentNewsList = newsRepository.findTop5ByOrderByPublishedAtDescIdDesc();
+        return NewsRecentGetResponse.from(recentNewsList);
     }
 
     private List<NewsItem> fetchNewsItems(){
