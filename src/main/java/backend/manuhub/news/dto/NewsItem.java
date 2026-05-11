@@ -1,4 +1,4 @@
-package backend.manuhub.news;
+package backend.manuhub.news.dto;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;

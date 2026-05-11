@@ -1,5 +1,6 @@
 package backend.manuhub.news;
 
+import backend.manuhub.news.dto.NewsListGetResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;

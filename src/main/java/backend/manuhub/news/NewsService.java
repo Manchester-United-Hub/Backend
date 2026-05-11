@@ -3,6 +3,8 @@ package backend.manuhub.news;
 import backend.manuhub.exception.ErrorCode;
 import backend.manuhub.exception.InvalidRequestException;
 import backend.manuhub.external.naver.NaverNewsClient;
+import backend.manuhub.news.dto.NewsItem;
+import backend.manuhub.news.dto.NewsListGetResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

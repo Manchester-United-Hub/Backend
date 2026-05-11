@@ -1,7 +1,7 @@
 package backend.manuhub.news;
 
 import backend.manuhub.exception.InvalidRequestException;
-import org.assertj.core.api.Assertions;
+import backend.manuhub.news.dto.NewsListGetResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

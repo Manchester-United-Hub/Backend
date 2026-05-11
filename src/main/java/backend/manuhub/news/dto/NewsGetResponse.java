@@ -1,5 +1,6 @@
-package backend.manuhub.news;
+package backend.manuhub.news.dto;
 
+import backend.manuhub.news.News;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AccessLevel;
 import lombok.Builder;
