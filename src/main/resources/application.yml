@@ -22,3 +22,12 @@ external:
   naver:
     client-id: ${NAVER_CLIENT_ID}
     client-secret: ${NAVER_CLIENT_SECRET}
+
+  api-football:
+    api-key: ${API_FOOTBALL_KEY}
+    api-base-uri: ${API_BASE_URI}
+
+retry:
+  team-statistics:
+    max-attempts: ${RETRY_TEAM_STATISTICS_MAX_ATTEMPTS}
+    delay: ${RETRY_TEAM_STATISTICS_DELAY}
