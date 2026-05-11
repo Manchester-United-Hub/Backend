@@ -1,5 +1,6 @@
-package backend.manuhub.teamstatistics;
+package backend.manuhub.teamstatistics.dto;
 
+import backend.manuhub.teamstatistics.TeamStatistics;
 import lombok.AccessLevel;
 import lombok.Builder;
 
