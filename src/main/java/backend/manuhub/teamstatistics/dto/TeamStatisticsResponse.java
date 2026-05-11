@@ -1,27 +1,21 @@
 package backend.manuhub.teamstatistics;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
 
-@Getter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-public class TeamStatisticsResponse {
-
-    private Long teamId;   // 팀 Id
-    private String teamName;    // 팀 이름
-    private Integer season;    // 시즌
-
-    private Integer win;       // 승
-    private Integer draw;      // 무
-    private Integer lose;      // 패
-
-    private Integer goalsFor;      // 득점
-    private Integer goalsAgainst;  // 실점
-
-    private Integer points;    // 승점
-    private Integer rank;      // 순위
-
+@Builder(access = AccessLevel.PROTECTED)
+public record TeamStatisticsResponse (
+        Long teamId,
+        String teamName,
+        Integer season,
+        Integer win,
+        Integer draw,
+        Integer lose,
+        Integer goalsFor,
+        Integer goalsAgainst,
+        Integer points,
+        Integer rank
+) {
     public static TeamStatisticsResponse from(TeamStatistics teamStatistics) {
         return TeamStatisticsResponse.builder()
                 .teamId(teamStatistics.getTeamId())
