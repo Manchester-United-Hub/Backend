@@ -44,21 +44,6 @@ class TeamStatisticsInitializeServiceTest {
         // then
         verify(teamStatisticsRepository, times(1)).save(any(TeamStatistics.class));
     }
-//
-//    @Test
-//    @DisplayName("이미 존재하는 시즌이면 EntityAlreadyExistsException을 던진다")
-//    void saveTeamStatistics_alreadyExists() {
-//        // given
-//        Integer season = 2024;
-//        given(teamStatisticsRepository.existsBySeason(season)).willReturn(true);
-//
-//        // when & then
-//        assertThatThrownBy(() -> teamStatisticsInitializeService.saveTeamStatistics(season))
-//                .isInstanceOf(EntityAlreadyExistsException.class);
-//
-//        verify(teamStatisticsClient, never()).getTeamStatistics(any());
-//        verify(teamStatisticsRepository, never()).save(any());
-//    }
 
     @Test
     @DisplayName("빈 응답이면 저장하지 않는다")
