@@ -19,3 +19,12 @@ external:
     client-id: test
     client-secret: test
     base-url: test
+
+  api-football:
+    api-key: test
+    api-base-uri: test
+
+retry:
+  team-statistics:
+    max-attempts: 3
+    delay: 0
