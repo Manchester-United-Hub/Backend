@@ -24,4 +24,6 @@ public interface NewsRepository extends JpaRepository<News, Long> {
             @Param("cursorId") Long cursorId,
             @Param("size") int size
     );
+
+    List<News> findTop5ByOrderByPublishedAtDescIdDesc();
 }
