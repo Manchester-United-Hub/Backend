@@ -9,11 +9,16 @@ spring:
     hibernate:
       ddl-auto: create
 
+  task:
+    scheduling:
+      enabled: false
+
 
 external:
   naver:
     client-id: test
     client-secret: test
+    base-url: test
 
   api-football:
     api-key: test
