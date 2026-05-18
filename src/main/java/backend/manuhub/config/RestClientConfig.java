@@ -14,4 +14,14 @@ public class RestClientConfig {
                 .baseUrl(baseUrl)
                 .build();
     }
+
+    @Bean
+    public RestClient apiFootballRestClient(@Value("${external.api-football.api-base-uri}") String apiBaseUri,
+                                            @Value("${external.api-football.api-key}") String apiKey) {
+
+        return RestClient.builder()
+                .baseUrl(apiBaseUri)
+                .defaultHeader("x-apisports-key", apiKey)
+                .build();
+    }
 }

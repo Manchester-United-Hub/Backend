@@ -1,24 +1,30 @@
 package backend.manuhub.external.teamstatistics;
 
-import backend.manuhub.exception.ErrorCode;
 import backend.manuhub.exception.ApiClientException;
 import backend.manuhub.exception.ApiServerException;
-import lombok.RequiredArgsConstructor;
+import backend.manuhub.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Optional;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class TeamStatisticsClient {
 
+    @Qualifier("apiFootballRestClient")
     private final RestClient restClient;
     private final static Long teamId = 33L;
+
+    public TeamStatisticsClient(
+            @Qualifier("apiFootballRestClient")
+            RestClient restClient
+    ) {
+        this.restClient = restClient;
+    }
 
     public Optional<TeamStatisticsApiResponse> getTeamStatistics(Integer season) {
 

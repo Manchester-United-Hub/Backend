@@ -3,7 +3,6 @@ package backend.manuhub.external.naver;
 import backend.manuhub.exception.ApiClientException;
 import backend.manuhub.exception.ApiServerException;
 import backend.manuhub.exception.ErrorCode;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
@@ -13,7 +12,6 @@ import org.springframework.web.client.RestClient;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 public class NaverNewsClient {
 
     @Value("${external.naver.client-id}")
@@ -23,6 +21,13 @@ public class NaverNewsClient {
 
     @Qualifier("naverRestClient")
     private final RestClient restClient;
+
+    public NaverNewsClient(
+            @Qualifier("naverRestClient")
+            RestClient restClient
+    ) {
+        this.restClient = restClient;
+    }
 
     public List<NaverNewsResponse.NaverNewsItem> fetchNews(){
 
