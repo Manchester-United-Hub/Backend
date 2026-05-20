@@ -15,11 +15,14 @@ services:
       DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
+      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY}
+      API_BASE_URI: ${API_BASE_URI}
+      RETRY_TEAM_STATISTICS_MAX_ATTEMPTS: ${RETRY_TEAM_STATISTICS_MAX_ATTEMPTS}
+      RETRY_TEAM_STATISTICS_DELAY: ${RETRY_TEAM_STATISTICS_DELAY}
 
   mysql:
     image: mysql:8.0
     container_name: manu-mysql
-    restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
