@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  app:
+    image: seungwoo1004/manuhub-backend:latest
+    container_name: manu-app
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY}
+      API_BASE_URI: ${API_BASE_URI}
+      RETRY_TEAM_STATISTICS_MAX_ATTEMPTS: ${RETRY_TEAM_STATISTICS_MAX_ATTEMPTS}
+      RETRY_TEAM_STATISTICS_DELAY: ${RETRY_TEAM_STATISTICS_DELAY}
+      NAVER_CLIENT_ID: ${NAVER_CLIENT_ID}
+      NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET}
+
+  mysql:
+    image: mysql:8.0
+    container_name: manu-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: manu-redis
+    restart: always
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mysql_data:
+  redis_data:
