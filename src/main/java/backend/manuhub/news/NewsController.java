@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
-public class NewsController {
+public class NewsController implements NewsAPI{
 
     private final NewsService newsService;
 
