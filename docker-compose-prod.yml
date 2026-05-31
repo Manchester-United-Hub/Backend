@@ -1,6 +1,18 @@
 version: "3.8"
 
 services:
+  nginx:
+    image: nginx:latest
+    container_name: manu-nginx
+    restart: always
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      # Https 적용 시 추가
+      #- "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
   app:
     image: seungwoo1004/manuhub-backend:latest
     container_name: manu-app
@@ -31,6 +43,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql_data_prod:/var/lib/mysql
     healthcheck:
