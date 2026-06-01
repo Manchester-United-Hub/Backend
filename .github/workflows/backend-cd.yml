@@ -1,8 +1,9 @@
-name: Backend CI/CD
+name: Backend CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   build:
@@ -24,8 +25,8 @@ jobs:
       - name: Grant execute permission for Gradle Wrapper
         run: chmod +x ./gradlew
 
-      - name: Test with Gradle
-        run: ./gradlew test
+      - name: Build with Gradle
+        run: ./gradlew build
 
   docker-build-push:
     runs-on: ubuntu-latest
