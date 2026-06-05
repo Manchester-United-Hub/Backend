@@ -10,10 +10,9 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/team/statistics")
-public class TeamStatisticsController {
+public class TeamStatisticsController implements TeamStatisticsAPI{
 
     private final TeamStatisticsService teamStatisticsService;
-
 
     @GetMapping
     public ResponseEntity<List<TeamStatisticsResponse>> getAllTeamStatistics() {
