@@ -43,6 +43,6 @@ class TeamStatisticsInitializeServiceRetryTest {
         teamStatisticsInitializeService.saveTeamStatistics(season);
 
         // then
-        verify(teamStatisticsClient, times(4)).getTeamStatistics(season); // maxAttempts 기본값
+        verify(teamStatisticsClient, times(3)).getTeamStatistics(season); // maxAttempts 기본값
     }
 }
