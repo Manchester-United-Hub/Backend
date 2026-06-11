@@ -28,3 +28,5 @@ retry:
   team-statistics:
     max-attempts: 3
     delay: 0
+  news:
+    delay: 0
