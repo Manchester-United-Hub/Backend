@@ -30,3 +30,5 @@ retry:
     delay: 0
   news:
     delay: 0
+  coach:
+    delay: 0
