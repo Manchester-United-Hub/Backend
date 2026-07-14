@@ -9,6 +9,11 @@ spring:
     hibernate:
       ddl-auto: create
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
   task:
     scheduling:
       enabled: false
@@ -31,4 +36,6 @@ retry:
   news:
     delay: 0
   coach:
+    delay: 0
+  rank:
     delay: 0
