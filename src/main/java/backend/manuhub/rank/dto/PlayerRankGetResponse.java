@@ -6,12 +6,12 @@ import lombok.Builder;
 import java.util.List;
 
 @Builder(access = AccessLevel.PRIVATE)
-public record RankGetResponse(
+public record PlayerRankGetResponse(
         String season,
-        List<RankResponse> ranks
+        List<PlayerRankResponse> ranks
 ) {
-    public static RankGetResponse from(int season, List<RankResponse> ranks) {
-        return RankGetResponse.builder()
+    public static PlayerRankGetResponse from(int season, List<PlayerRankResponse> ranks) {
+        return PlayerRankGetResponse.builder()
                 .season(season + "-" + String.valueOf(season + 1).substring(2))
                 .ranks(ranks)
                 .build();

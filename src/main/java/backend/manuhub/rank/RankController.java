@@ -1,6 +1,7 @@
 package backend.manuhub.rank;
 
-import backend.manuhub.rank.dto.RankGetResponse;
+import backend.manuhub.rank.dto.PlayerRankGetResponse;
+import backend.manuhub.rank.dto.TeamRankGetResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,8 +16,20 @@ public class RankController implements RankAPI{
     private final RankService rankService;
 
     @GetMapping("/premier-league")
-    public ResponseEntity<RankGetResponse> getPLRank() {
-        RankGetResponse result = rankService.getRank();
+    public ResponseEntity<TeamRankGetResponse> getPLRank() {
+        TeamRankGetResponse result = rankService.getRank();
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/premier-league/topscorers")
+    public ResponseEntity<PlayerRankGetResponse> getPLTopScorers() {
+        PlayerRankGetResponse result = rankService.getTopScorers();
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/premier-league/topassists")
+    public ResponseEntity<PlayerRankGetResponse> getPLTopAssists() {
+        PlayerRankGetResponse result = rankService.getTopAssists();
         return ResponseEntity.ok(result);
     }
 }
