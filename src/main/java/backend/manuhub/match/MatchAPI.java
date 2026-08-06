@@ -1,6 +1,7 @@
 package backend.manuhub.match;
 
 import backend.manuhub.annotation.CommonErrorResponses;
+import backend.manuhub.match.dto.MatchListResponse;
 import backend.manuhub.match.dto.MatchResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,8 +12,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestParam;
-
-import java.util.List;
 
 @Tag(name = "경기 일정 관련 API")
 public interface MatchAPI {
@@ -26,41 +25,44 @@ public interface MatchAPI {
                             description = "경기 일정 목록 조회 성공",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(implementation = MatchResponse.class),
+                                    schema = @Schema(implementation = MatchListResponse.class),
                                     examples = @ExampleObject(value = """
-                                            [
-                                                {
-                                                    "matchId": 239625,
-                                                    "date": "2020-02-06T23:00:00",
-                                                    "venue": {
-                                                        "name": "Stade Municipal",
-                                                        "city": "Oued Zem"
-                                                    },
-                                                    "homeTeam": {
-                                                        "teamId": 967,
-                                                        "name": "Rapide Oued ZEM",
-                                                        "logo": "https://media.api-sports.io/football/teams/967.png",
-                                                        "winner": false
-                                                    },
-                                                    "awayTeam": {
-                                                        "teamId": 968,
-                                                        "name": "Wydad AC",
-                                                        "logo": "https://media.api-sports.io/football/teams/968.png",
-                                                        "winner": true
-                                                    },
-                                                    "score": {
-                                                        "home": 0,
-                                                        "away": 1
+                                            {
+                                                "pastMatches": [
+                                                    {
+                                                        "matchId": 239625,
+                                                        "date": "2020-02-06T23:00:00",
+                                                        "venue": {
+                                                            "name": "Stade Municipal",
+                                                            "city": "Oued Zem"
+                                                        },
+                                                        "homeTeam": {
+                                                            "teamId": 967,
+                                                            "name": "Rapide Oued ZEM",
+                                                            "logo": "https://media.api-sports.io/football/teams/967.png",
+                                                            "winner": false
+                                                        },
+                                                        "awayTeam": {
+                                                            "teamId": 968,
+                                                            "name": "Wydad AC",
+                                                            "logo": "https://media.api-sports.io/football/teams/968.png",
+                                                            "winner": true
+                                                        },
+                                                        "score": {
+                                                            "home": 0,
+                                                            "away": 1
+                                                        }
                                                     }
-                                                }
-                                            ]
+                                                ],
+                                                "upcomingMatches": []
+                                            }
                                             """)
                             )
                     )
             }
     )
     @CommonErrorResponses
-    ResponseEntity<List<MatchResponse>> getMatches(
+    ResponseEntity<MatchListResponse> getMatches(
             @Parameter(description = "Season year", required = false,
                     schema = @Schema(type = "integer", example = "2026"))
             @RequestParam(required = false) Integer season);
