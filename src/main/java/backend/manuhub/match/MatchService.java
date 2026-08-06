@@ -2,6 +2,7 @@ package backend.manuhub.match;
 
 import backend.manuhub.exception.ErrorCode;
 import backend.manuhub.exception.ManuHubException;
+import backend.manuhub.match.dto.MatchListResponse;
 import backend.manuhub.match.dto.MatchResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -19,16 +21,15 @@ public class MatchService {
 
     private static final int SEASON_START_MONTH = 6;
     private static final int SEASON_START_DAY = 1;
+    private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
 
     private final MatchRepository matchRepository;
 
     @Transactional(readOnly = true)
-    public List<MatchResponse> getMatches(Integer season) {
+    public MatchListResponse getMatches(Integer season) {
         List<Match> matches = season == null ? getAllMatches() : getSeasonMatches(season);
 
-        return matches.stream()
-                .map(MatchResponse::from)
-                .toList();
+        return MatchListResponse.from(matches, LocalDateTime.now(KOREA_ZONE));
     }
 
     @Transactional(readOnly = true)
