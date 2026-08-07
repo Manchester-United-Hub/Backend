@@ -35,5 +35,11 @@ external:
 
 retry:
   team-statistics:
-    max-attempts: ${RETRY_TEAM_STATISTICS_MAX_ATTEMPTS}
-    delay: ${RETRY_TEAM_STATISTICS_DELAY}
+    max-attempts: ${RETRY_TEAM_STATISTICS_MAX_ATTEMPTS:3}
+    delay: ${RETRY_TEAM_STATISTICS_DELAY:1000}
+  player:
+    max-attempts: ${RETRY_PLAYER_MAX_ATTEMPTS:3}
+    delay: ${RETRY_PLAYER_DELAY:1000}
+  match:
+    max-attempts: ${RETRY_MATCH_MAX_ATTEMPTS:3}
+    delay: ${RETRY_MATCH_DELAY:1000}
