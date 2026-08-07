@@ -13,33 +13,27 @@ import java.util.NoSuchElementException;
 @Slf4j
 public class PlayerMapper {
 
-    public static List<Player> toEntities(Integer season, List<PlayerApiResponse.Response> responses) {
+    public static List<Player> toEntities(List<PlayerApiResponse.Response> responses) {
         try {
             return responses.stream()
-                    .map(response -> toEntity(season, response))
+                    .map(PlayerMapper::toEntity)
                     .toList();
-        } catch (NullPointerException | IndexOutOfBoundsException | NoSuchElementException e) {
-            log.error(">>> PlayerMapper --> API-Football 선수 응답 구조가 올바르지 않습니다. season={}", season, e);
+        } catch (NullPointerException | NoSuchElementException e) {
+            log.error(">>> PlayerMapper --> API-Football player response is invalid.", e);
             throw new ApiInvalidResponseException(ErrorCode.API_FOOTBALL_PLAYER_INVALID_RESPONSE_ERROR);
         }
     }
 
-    private static Player toEntity(Integer season, PlayerApiResponse.Response response) {
+    private static Player toEntity(PlayerApiResponse.Response response) {
         PlayerApiResponse.Player player = response.player();
-        PlayerApiResponse.Statistics statistics = response.statistics().getFirst();
-        PlayerApiResponse.Games games = statistics.games();
-
-        return Player.builder()
-                .playerId(player.id())
-                .season(season)
-                .name(player.name())
-                .birthDate(player.birth().date())
-                .nationality(player.nationality())
-                .height(player.height())
-                .weight(player.weight())
-                .number(games.number())
-                .position(games.position())
-                .photo(player.photo())
-                .build();
+        return Player.create(
+                player.id(),
+                player.name(),
+                player.birth().date(),
+                player.nationality(),
+                player.height(),
+                player.weight(),
+                player.photo()
+        );
     }
 }

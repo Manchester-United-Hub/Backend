@@ -1,15 +1,15 @@
 package backend.manuhub.playerdetail.dto;
 
-import backend.manuhub.player.dto.PlayerResponse;
+import backend.manuhub.seasonplayer.dto.SeasonPlayerResponse;
 import backend.manuhub.playerdetail.PlayerDetail;
 
 import java.util.List;
 
 public record PlayerDetailResponse(
-        PlayerResponse player,
+        SeasonPlayerResponse player,
         List<LeagueStatisticsResponse> statistics
 ) {
-    public static PlayerDetailResponse of(PlayerResponse player, List<PlayerDetail> details) {
+    public static PlayerDetailResponse of(SeasonPlayerResponse player, List<PlayerDetail> details) {
         return new PlayerDetailResponse(
                 player,
                 details.stream().map(LeagueStatisticsResponse::from).toList()

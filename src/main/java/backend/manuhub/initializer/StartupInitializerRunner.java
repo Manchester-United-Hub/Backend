@@ -2,7 +2,8 @@ package backend.manuhub.initializer;
 
 import backend.manuhub.exception.ApiInvalidResponseException;
 import backend.manuhub.match.MatchInitializeService;
-import backend.manuhub.player.PlayerInitializeService;
+import backend.manuhub.season.SeasonInitializeService;
+import backend.manuhub.seasonplayer.SeasonPlayerInitializeService;
 import backend.manuhub.teamstatistics.TeamStatisticsInitializeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +11,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
 import java.util.function.Consumer;
 
 @Component
@@ -21,40 +21,44 @@ public class StartupInitializerRunner implements CommandLineRunner {
 
     private static final Long PREMIER_LEAGUE_ID = 39L;
     private static final Long MANCHESTER_UNITED_TEAM_ID = 33L;
-    private static final int START_SEASON = 2020;
-    private static final int SEASON_START_MONTH = 6;
-    private static final int SEASON_START_DAY = 1;
-
+    private static final int SEASON_START_SEASON = 2025;
+    private static final int MATCH_START_SEASON = 2025;
+    private static final int PLAYER_START_SEASON = 2010;
+    private static final int TEAM_STATISTICS_START_SEASON = 2010;
+    private final SeasonInitializeService seasonInitializeService;
     private final MatchInitializeService matchInitializeService;
-    private final PlayerInitializeService playerInitializeService;
+    private final SeasonPlayerInitializeService seasonPlayerInitializeService;
     private final TeamStatisticsInitializeService teamStatisticsInitializeService;
 
     @Override
     public void run(String... args) {
-        initializeMatches();
-        initializePlayers();
-        initializeTeamStatistics();
+        int currentSeason = seasonInitializeService.saveSeasonsFrom(SEASON_START_SEASON);
+        initializeMatches(currentSeason);
+        initializeSeasonPlayers(currentSeason);
+        initializeTeamStatistics(currentSeason);
     }
 
-    private void initializeMatches() {
-        initializeSeasons("Match",
+    private void initializeMatches(int currentSeason) {
+        initializeSeasonRange("Match", MATCH_START_SEASON, currentSeason,
                 season -> saveMatches(PREMIER_LEAGUE_ID, season, MANCHESTER_UNITED_TEAM_ID));
     }
 
-    private void initializePlayers() {
-        initializeSeasons("Player", this::savePlayers);
+    private void initializeSeasonPlayers(int currentSeason) {
+        initializeSeasonRange("SeasonPlayer", PLAYER_START_SEASON, currentSeason, this::saveSeasonPlayers);
     }
 
-    private void initializeTeamStatistics() {
-        initializeSeasons("TeamStatistics", this::saveTeamStatistics);
+    private void initializeTeamStatistics(int currentSeason) {
+        initializeSeasonRange(
+                "TeamStatistics", TEAM_STATISTICS_START_SEASON, currentSeason, this::saveTeamStatistics
+        );
     }
 
-    private void initializeSeasons(String targetName, Consumer<Integer> initializer) {
-        int currentSeason = getCurrentSeason();
+    private void initializeSeasonRange(String targetName, int startSeason, int currentSeason,
+                                       Consumer<Integer> initializer) {
         log.info("[StartupInitializer] {} initialization started. seasons={}~{}",
-                targetName, START_SEASON, currentSeason);
+                targetName, startSeason, currentSeason);
 
-        for (int season = START_SEASON; season <= currentSeason; season++) {
+        for (int season = startSeason; season <= currentSeason; season++) {
             initializer.accept(season);
         }
     }
@@ -68,9 +72,9 @@ public class StartupInitializerRunner implements CommandLineRunner {
         }
     }
 
-    private void savePlayers(Integer season) {
+    private void saveSeasonPlayers(Integer season) {
         try {
-            playerInitializeService.savePlayers(season);
+            seasonPlayerInitializeService.saveSeasonPlayers(season);
         } catch (ApiInvalidResponseException e) {
             log.error(">>> StartupInitializerRunner --> API-Football players response is invalid. season={}", season, e);
         }
@@ -84,13 +88,4 @@ public class StartupInitializerRunner implements CommandLineRunner {
         }
     }
 
-    private int getCurrentSeason() {
-        LocalDate now = LocalDate.now();
-        LocalDate seasonStartDate = LocalDate.of(now.getYear(), SEASON_START_MONTH, SEASON_START_DAY);
-
-        if (now.isBefore(seasonStartDate)) {
-            return now.getYear() - 1;
-        }
-        return now.getYear();
-    }
 }

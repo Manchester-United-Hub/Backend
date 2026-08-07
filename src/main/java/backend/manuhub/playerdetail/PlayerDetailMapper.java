@@ -3,7 +3,7 @@ package backend.manuhub.playerdetail;
 import backend.manuhub.exception.ApiInvalidResponseException;
 import backend.manuhub.exception.ErrorCode;
 import backend.manuhub.external.player.PlayerApiResponse;
-import backend.manuhub.player.Player;
+import backend.manuhub.seasonplayer.SeasonPlayer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +16,7 @@ import java.util.NoSuchElementException;
 public class PlayerDetailMapper {
 
     public static List<PlayerDetail> toEntities(Integer season, List<PlayerApiResponse.Response> responses,
-                                                 Map<Long, Player> playersByPlayerId) {
+                                                 Map<Long, SeasonPlayer> playersByPlayerId) {
         try {
             return responses.stream()
                     .flatMap(response -> response.statistics().stream()
@@ -29,8 +29,8 @@ public class PlayerDetailMapper {
     }
 
     private static PlayerDetail toEntity(Integer season, Long playerId, PlayerApiResponse.Statistics statistics,
-                                         Map<Long, Player> playersByPlayerId) {
-        Player player = playersByPlayerId.get(playerId);
+                                         Map<Long, SeasonPlayer> playersByPlayerId) {
+        SeasonPlayer seasonPlayer = playersByPlayerId.get(playerId);
         PlayerApiResponse.League league = statistics.league();
         PlayerApiResponse.Games games = statistics.games();
         PlayerApiResponse.Substitutes substitutes = statistics.substitutes();
@@ -45,7 +45,8 @@ public class PlayerDetailMapper {
         PlayerApiResponse.Penalty penalty = statistics.penalty();
 
         return PlayerDetail.builder()
-                .player(player).season(season).leagueId(league.id()).leagueName(league.name())
+                .playerId(playerId).season(season).seasonPlayer(seasonPlayer)
+                .leagueId(league.id()).leagueName(league.name())
                 .appearances(games.appearences()).lineups(games.lineups()).minutes(games.minutes())
                 .rating(games.rating()).captain(games.captain())
                 .substitutesIn(substitutes.in()).substitutesOut(substitutes.out()).substitutesBench(substitutes.bench())

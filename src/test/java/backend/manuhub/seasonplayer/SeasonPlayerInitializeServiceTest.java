@@ -1,7 +1,8 @@
-package backend.manuhub.player;
+package backend.manuhub.seasonplayer;
 
 import backend.manuhub.external.player.PlayerApiResponse;
 import backend.manuhub.external.player.PlayerClient;
+import backend.manuhub.player.PlayerRepository;
 import backend.manuhub.playerdetail.PlayerDetailRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,7 +10,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
@@ -21,7 +21,10 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
-class PlayerInitializeServiceTest {
+class SeasonPlayerInitializeServiceTest {
+
+    @Mock
+    private SeasonPlayerRepository seasonPlayerRepository;
 
     @Mock
     private PlayerRepository playerRepository;
@@ -33,7 +36,7 @@ class PlayerInitializeServiceTest {
     private PlayerDetailRepository playerDetailRepository;
 
     @InjectMocks
-    private PlayerInitializeService playerInitializeService;
+    private SeasonPlayerInitializeService seasonPlayerInitializeService;
 
     @Test
     @DisplayName("선수 데이터가 없는 시즌은 맨체스터 유나이티드 선수 전체를 저장한다")
@@ -43,29 +46,44 @@ class PlayerInitializeServiceTest {
                         "Portugal", "179 cm", "69 kg", "photo"),
                 List.of(statistics())
         );
-        when(playerRepository.existsBySeason(2023)).thenReturn(false);
+        when(seasonPlayerRepository.existsBySeason(2023)).thenReturn(false);
         when(playerClient.getManchesterUnitedPlayers(2023)).thenReturn(List.of(response));
         when(playerRepository.saveAll(org.mockito.ArgumentMatchers.anyList()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(seasonPlayerRepository.saveAll(org.mockito.ArgumentMatchers.anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        playerInitializeService.savePlayers(2023);
+        seasonPlayerInitializeService.saveSeasonPlayers(2023);
 
-        verify(playerRepository).saveAll(argThat(players -> {
+        verify(seasonPlayerRepository).saveAll(argThat(players -> {
             var iterator = players.iterator();
             if (!iterator.hasNext()) {
                 return false;
             }
 
-            Player savedPlayer = iterator.next();
+            SeasonPlayer savedPlayer = iterator.next();
             return !iterator.hasNext()
                     && savedPlayer.getPlayerId().equals(1485L)
                     && savedPlayer.getSeason().equals(2023)
-                    && savedPlayer.getName().equals("Bruno Fernandes");
+                    && savedPlayer.getPlayer().getName().equals("Bruno Fernandes");
+        }));
+        verify(playerRepository).saveAll(argThat(players -> {
+            var iterator = players.iterator();
+            return iterator.hasNext()
+                    && iterator.next().getPlayerId().equals(1485L)
+                    && !iterator.hasNext();
         }));
         verify(playerDetailRepository).saveAll(argThat(details -> {
             var iterator = details.iterator();
-            return iterator.hasNext()
-                    && iterator.next().getLeagueName().equals("Premier League")
+            if (!iterator.hasNext()) {
+                return false;
+            }
+
+            var detail = iterator.next();
+            return detail.getPlayerId().equals(1485L)
+                    && detail.getSeason().equals(2023)
+                    && detail.getLeagueId().equals(39L)
+                    && detail.getLeagueName().equals("Premier League")
                     && !iterator.hasNext();
         }));
     }
@@ -73,12 +91,13 @@ class PlayerInitializeServiceTest {
     @Test
     @DisplayName("이미 선수가 저장된 시즌은 외부 API 호출과 저장을 건너뛴다")
     void skipsSeasonWhenPlayersAlreadyExist() {
-        when(playerRepository.existsBySeason(2024)).thenReturn(true);
+        when(seasonPlayerRepository.existsBySeason(2024)).thenReturn(true);
 
-        playerInitializeService.savePlayers(2024);
+        seasonPlayerInitializeService.saveSeasonPlayers(2024);
 
         verify(playerClient, never()).getManchesterUnitedPlayers(2024);
         verify(playerRepository, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
+        verify(seasonPlayerRepository, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
         verify(playerDetailRepository, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
     }
 

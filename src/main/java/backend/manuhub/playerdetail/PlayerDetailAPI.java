@@ -3,6 +3,7 @@ package backend.manuhub.playerdetail;
 import backend.manuhub.annotation.CommonErrorResponses;
 import backend.manuhub.playerdetail.dto.PlayerDetailResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,6 +26,10 @@ public interface PlayerDetailAPI {
     )
     @CommonErrorResponses
     ResponseEntity<PlayerDetailResponse> getPlayerDetail(
+            @Parameter(description = "Player ID", required = true,
+                    schema = @Schema(type = "integer", defaultValue = "1485", example = "1485"))
             @PathVariable Long playerId,
+            @Parameter(description = "Season year", required = true,
+                    schema = @Schema(type = "integer", defaultValue = "2024", example = "2024"))
             @RequestParam Integer season);
 }
