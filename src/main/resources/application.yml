@@ -37,3 +37,11 @@ retry:
   team-statistics:
     max-attempts: ${RETRY_TEAM_STATISTICS_MAX_ATTEMPTS}
     delay: ${RETRY_TEAM_STATISTICS_DELAY}
+
+cloudflare:
+  r2:
+    endpoint: https://c617d97cfcb06429e7af174bfa03ba9b.r2.cloudflarestorage.com
+    public-url: https://pub-8dfe7ca8163c400aac6a83640c67edb4.r2.dev
+    access-key: ${R2_ACCESS_KEY}
+    secret-key: ${R2_SECRET_KEY}
+    bucket: manuhub
