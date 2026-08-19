@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import java.util.function.Supplier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,9 +31,9 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class RankService {
 
-    private static final String RANK_CACHE_KEY = "rank:premier-league";
-    private static final String TOP_SCORERS_CACHE_KEY = "rank:premier-league:topscorers";
-    private static final String TOP_ASSISTS_CACHE_KEY = "rank:premier-league:topassists";
+    private static final String RANK_CACHE_KEY = "rank:premier-league:%d";
+    private static final String TOP_SCORERS_CACHE_KEY = "rank:premier-league:topscorers:%d";
+    private static final String TOP_ASSISTS_CACHE_KEY = "rank:premier-league:topassists:%d";
 
     private static final long CACHE_TTL_HOURS = 25;
 
@@ -43,56 +44,55 @@ public class RankService {
     private final ImageService imageService;
 
 
-    public TeamRankGetResponse getRank() {
-        int currentSeason = 2025;
-        try {
-            List<TeamRankResponse> result = getCache(RANK_CACHE_KEY, new TypeReference<>() {});
-            if (result == null) {
-                result = fetchRankBySeason(currentSeason);
-                saveCache(RANK_CACHE_KEY, result);
-            }
-            return TeamRankGetResponse.from(currentSeason, result);
-        } catch (RedisException e) {
-            log.error(">>> RankService --> RedisException", e);
-            return TeamRankGetResponse.from(currentSeason, fetchRankBySeason(currentSeason));
-        }
+    public TeamRankGetResponse getRank(int season) {
+        List<TeamRankResponse> result = getOrFetch(
+                String.format(RANK_CACHE_KEY, season),
+                new TypeReference<>() {},
+                () -> fetchRankBySeason(season)
+        );
+        return TeamRankGetResponse.from(season, result);
     }
 
-    public PlayerRankGetResponse getTopScorers() {
-        int currentSeason = 2025;
-        try {
-            List<PlayerRankResponse> result = getCache(TOP_SCORERS_CACHE_KEY, new TypeReference<>() {});
-            if (result == null) {
-                result = toPlayerRankResponses(rankClient.fetchTopScorers(currentSeason), true);
-                saveCache(TOP_SCORERS_CACHE_KEY, result);
-            }
-            return PlayerRankGetResponse.from(currentSeason, result);
-        } catch (RedisException e) {
-            log.error(">>> RankService --> RedisException", e);
-            return PlayerRankGetResponse.from(currentSeason, toPlayerRankResponses(rankClient.fetchTopScorers(currentSeason), true));
-        }
+    public PlayerRankGetResponse getTopScorers(int season) {
+        List<PlayerRankResponse> result = getOrFetch(
+                String.format(TOP_SCORERS_CACHE_KEY, season),
+                new TypeReference<>() {},
+                () -> toPlayerRankResponses(rankClient.fetchTopScorers(season), true)
+        );
+        return PlayerRankGetResponse.from(season, result);
     }
 
-    public PlayerRankGetResponse getTopAssists() {
-        int currentSeason = 2025;
-        try {
-            List<PlayerRankResponse> result = getCache(TOP_ASSISTS_CACHE_KEY, new TypeReference<>() {});
-            if (result == null) {
-                result = toPlayerRankResponses(rankClient.fetchTopAssists(currentSeason), false);
-                saveCache(TOP_ASSISTS_CACHE_KEY, result);
-            }
-            return PlayerRankGetResponse.from(currentSeason, result);
-        } catch (RedisException e) {
-            log.error(">>> RankService --> RedisException", e);
-            return PlayerRankGetResponse.from(currentSeason, toPlayerRankResponses(rankClient.fetchTopAssists(currentSeason), false));
-        }
+    public PlayerRankGetResponse getTopAssists(int season) {
+        List<PlayerRankResponse> result = getOrFetch(
+                String.format(TOP_ASSISTS_CACHE_KEY, season),
+                new TypeReference<>() {},
+                () -> toPlayerRankResponses(rankClient.fetchTopAssists(season), false)
+        );
+        return PlayerRankGetResponse.from(season, result);
     }
 
     public void updateRank() {
         int currentSeason = seasonProvider.getCurrentSeason();
-        saveCache(RANK_CACHE_KEY, fetchRankBySeason(currentSeason));
-        saveCache(TOP_SCORERS_CACHE_KEY, toPlayerRankResponses(rankClient.fetchTopScorers(currentSeason), true));
-        saveCache(TOP_ASSISTS_CACHE_KEY, toPlayerRankResponses(rankClient.fetchTopAssists(currentSeason), false));
+        saveCache(String.format(RANK_CACHE_KEY, currentSeason), fetchRankBySeason(currentSeason));
+        saveCache(String.format(TOP_SCORERS_CACHE_KEY, currentSeason), toPlayerRankResponses(rankClient.fetchTopScorers(currentSeason), true));
+        saveCache(String.format(TOP_ASSISTS_CACHE_KEY, currentSeason), toPlayerRankResponses(rankClient.fetchTopAssists(currentSeason), false));
+    }
+
+    private <T> List<T> getOrFetch(String cacheKey, TypeReference<List<T>> typeRef, Supplier<List<T>> fetchFn) {
+        try {
+            List<T> cached = getCache(cacheKey, typeRef);
+            if (cached != null) {
+                return cached;
+            }
+            List<T> fetched = fetchFn.get();
+            if (!fetched.isEmpty()) {
+                saveCache(cacheKey, fetched);
+            }
+            return fetched;
+        } catch (RedisException e) {
+            log.error(">>> RankService --> RedisException", e);
+            return fetchFn.get();
+        }
     }
     private List<TeamRankResponse> fetchRankBySeason(int season) {
         List<TeamRankApiResponse.RankInfo> rankInfos = rankClient.fetchRank(season);
