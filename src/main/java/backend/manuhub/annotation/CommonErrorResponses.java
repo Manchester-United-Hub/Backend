@@ -17,16 +17,24 @@ import java.lang.annotation.Target;
 @ApiResponses({
         @ApiResponse(
                 responseCode = "400",
-                description = "잘못된 요청",
+                description = "잘못된 요청 (유효성 검증 실패, 필수 파라미터 누락 등)",
                 content = @Content(
                         mediaType = "application/json",
                         schema = @Schema(implementation = ErrorResponse.class),
-                        examples = @ExampleObject(value = """
+                        examples = {
+                                @ExampleObject(name = "잘못된 요청", value = """
                                 {
-                                	"code" : "INVALID_REQUEST_ERROR",
-                                	"message" : "잘못된 요청입니다."
+                                    "code" : "INVALID_REQUEST_ERROR",
+                                    "message" : "잘못된 요청입니다."
+                                }
+                                """),
+                                @ExampleObject(name = "파라미터 누락", value = """
+                                {
+                                    "code" : "MISSING_REQUEST_PARAMETER_ERROR",
+                                    "message" : "필수 요청 파라미터가 누락되었습니다."
                                 }
                                 """)
+                        }
                 )
         ),
         @ApiResponse(
