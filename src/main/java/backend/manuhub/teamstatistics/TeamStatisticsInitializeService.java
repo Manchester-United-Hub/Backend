@@ -18,8 +18,8 @@ public class TeamStatisticsInitializeService {
     private final TeamStatisticsClient teamStatisticsClient;
 
     @Retryable(
-            maxAttemptsExpression = "${retry.team-statistics.max-attempts:11}",
-            backoff = @Backoff(delayExpression = "${retry.team-statistics.delay:60000}", multiplier = 2), // 최대 1024분
+            maxAttemptsExpression = "${retry.team-statistics.max-attempts:3}",
+            backoff = @Backoff(delayExpression = "${retry.team-statistics.delay:1000}", multiplier = 2),
             retryFor = {ApiServerException.class}
     )
     public void saveTeamStatistics(Integer season) {

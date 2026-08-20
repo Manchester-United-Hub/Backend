@@ -1,32 +1,32 @@
-package backend.manuhub.player.dto;
+package backend.manuhub.seasonplayer.dto;
 
 import backend.manuhub.player.Player;
 import lombok.AccessLevel;
 import lombok.Builder;
 
+import java.util.List;
+
 @Builder(access = AccessLevel.PROTECTED)
-public record PlayerResponse(
+public record SeasonPlayerResponse(
         Long id,
         String name,
         String birthDate,
         String nationality,
         String height,
         String weight,
-        Integer number,
-        String position,
-        String photo
+        String photo,
+        List<Integer> seasons
 ) {
-    public static PlayerResponse from(Player player) {
-        return PlayerResponse.builder()
+    public static SeasonPlayerResponse from(Player player, List<Integer> seasons) {
+        return SeasonPlayerResponse.builder()
                 .id(player.getPlayerId())
                 .name(player.getName())
                 .birthDate(player.getBirthDate())
                 .nationality(player.getNationality())
                 .height(player.getHeight())
                 .weight(player.getWeight())
-                .number(player.getNumber())
-                .position(player.getPosition())
                 .photo(player.getPhoto())
+                .seasons(seasons)
                 .build();
     }
 }

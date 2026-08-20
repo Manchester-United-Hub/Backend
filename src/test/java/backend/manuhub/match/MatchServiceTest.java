@@ -2,6 +2,7 @@ package backend.manuhub.match;
 
 import backend.manuhub.exception.ErrorCode;
 import backend.manuhub.exception.ManuHubException;
+import backend.manuhub.match.dto.MatchListResponse;
 import backend.manuhub.match.dto.MatchResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,10 +39,10 @@ class MatchServiceTest {
         Match match = createMatch(100L, LocalDateTime.of(2025, 8, 17, 0, 30), 2, 1);
         when(matchRepository.findAllByOrderByDateAsc()).thenReturn(List.of(match));
 
-        List<MatchResponse> result = matchService.getMatches(null);
+        MatchListResponse result = matchService.getMatches(null);
 
-        assertEquals(1, result.size());
-        assertMatchResponse(result.getFirst(), match);
+        assertEquals(1, result.pastMatches().size());
+        assertMatchResponse(result.pastMatches().getFirst(), match);
         verify(matchRepository).findAllByOrderByDateAsc();
         verify(matchRepository, never())
                 .findAllByDateGreaterThanEqualAndDateLessThanOrderByDateAsc(
@@ -59,11 +60,11 @@ class MatchServiceTest {
         when(matchRepository.findAllByDateGreaterThanEqualAndDateLessThanOrderByDateAsc(startDate, endDate))
                 .thenReturn(List.of(match));
 
-        List<MatchResponse> result = matchService.getMatches(2025);
+        MatchListResponse result = matchService.getMatches(2025);
 
-        assertEquals(1, result.size());
-        assertMatchResponse(result.getFirst(), match);
-        assertNull(result.getFirst().score());
+        assertEquals(1, result.pastMatches().size());
+        assertMatchResponse(result.pastMatches().getFirst(), match);
+        assertNull(result.pastMatches().getFirst().score());
         verify(matchRepository)
                 .findAllByDateGreaterThanEqualAndDateLessThanOrderByDateAsc(startDate, endDate);
         verify(matchRepository, never()).findAllByOrderByDateAsc();

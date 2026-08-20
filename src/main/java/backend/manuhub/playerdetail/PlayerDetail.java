@@ -1,38 +1,48 @@
 package backend.manuhub.playerdetail;
 
-import backend.manuhub.player.Player;
+import backend.manuhub.seasonplayer.SeasonPlayer;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "player_details", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"player_record_id", "league_id", "season"})
-})
+@Table(name = "player_details")
+@IdClass(PlayerDetailId.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PlayerDetail {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;                         // Detail statistic record ID
+    @Column(name = "player_id", nullable = false)
+    private Long playerId;                   // API-Football player ID
+
+    @Id
+    @Column(name = "season", nullable = false)
+    private Integer season;                  // Season year for the statistic
+
+    @Id
+    @Column(name = "league_id", nullable = false)
+    private Long leagueId;                   // Competition ID (league or cup)
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "player_record_id", nullable = false)
-    private Player player;                   // Player's season profile
+    @JoinColumns({
+            @JoinColumn(name = "player_id", referencedColumnName = "player_id",
+                    insertable = false, updatable = false),
+            @JoinColumn(name = "season", referencedColumnName = "season",
+                    insertable = false, updatable = false)
+    })
+    private SeasonPlayer seasonPlayer;       // Player's season profile
 
-    private Integer season;                  // Season year for the statistic
-    private Long leagueId;                   // Competition ID (league or cup)
     private String leagueName;               // Competition name (league or cup)
 
     private Integer appearances;             // Matches played
@@ -75,7 +85,7 @@ public class PlayerDetail {
     private Integer redCards;                // Direct red cards
 
     @Builder
-    private PlayerDetail(Player player, Integer season, Long leagueId, String leagueName,
+    private PlayerDetail(Long playerId, Integer season, SeasonPlayer seasonPlayer, Long leagueId, String leagueName,
                          Integer appearances, Integer lineups, Integer minutes, String rating, Boolean captain,
                          Integer substitutesIn, Integer substitutesOut, Integer substitutesBench,
                          Integer shotsTotal, Integer shotsOn, Integer goals, Integer assists,
@@ -86,9 +96,10 @@ public class PlayerDetail {
                          Integer duelsTotal, Integer duelsWon, Integer foulsDrawn, Integer foulsCommitted,
                          Integer goalsConceded, Integer saves, Integer penaltiesSaved,
                          Integer yellowCards, Integer yellowRedCards, Integer redCards) {
-        this.player = player;
+        this.playerId = playerId;
         this.season = season;
         this.leagueId = leagueId;
+        this.seasonPlayer = seasonPlayer;
         this.leagueName = leagueName;
         this.appearances = appearances;
         this.lineups = lineups;
