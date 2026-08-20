@@ -2,6 +2,7 @@ package backend.manuhub.team;
 
 import backend.manuhub.external.team.TeamApiResponse;
 import backend.manuhub.external.team.TeamClient;
+import backend.manuhub.image.ImageService;
 import backend.manuhub.team.dto.TeamResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final TeamClient teamClient;
+    private final ImageService imageService;
 
     @Transactional
     public Team createTeam(Long teamId) {
@@ -34,6 +36,7 @@ public class TeamService {
     }
 
     private Team saveTeam(TeamResponse t) {
-        return teamRepository.save(Team.create(t.id(), t.name(), t.logoUrl(), t.city(), t.country(), t.stadium(), t.founded()));
+        String r2LogoUrl = imageService.uploadFromUrl(t.logoUrl(), "teams/" + t.id() + ".png");
+        return teamRepository.save(Team.create(t.id(), t.name(), r2LogoUrl, t.city(), t.country(), t.stadium(), t.founded()));
     }
 }

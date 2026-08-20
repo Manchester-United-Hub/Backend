@@ -24,4 +24,9 @@ public class RestClientConfig {
                 .defaultHeader("x-apisports-key", apiKey)
                 .build();
     }
+
+    @Bean
+    public RestClient defaultRestClient() {
+        return RestClient.builder().build();
+    }
 }

@@ -4,6 +4,7 @@ import backend.manuhub.common.util.SeasonProvider;
 import backend.manuhub.external.rank.PlayerRankApiResponse;
 import backend.manuhub.external.rank.TeamRankApiResponse;
 import backend.manuhub.external.rank.RankClient;
+import backend.manuhub.image.ImageService;
 import backend.manuhub.rank.dto.PlayerRankGetResponse;
 import backend.manuhub.rank.dto.PlayerRankResponse;
 import backend.manuhub.rank.dto.TeamRankGetResponse;
@@ -28,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 
 @DisplayName("RankService 테스트")
@@ -52,10 +54,13 @@ public class RankServiceTest {
     @Mock
     private ObjectMapper objectMapper;
 
+    @Mock
+    private ImageService imageService;
+
     @BeforeEach
     void setUp() {
-        given(redisTemplate.opsForValue()).willReturn(valueOperations);
-        given(seasonProvider.getCurrentSeason()).willReturn(2025);
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        lenient().when(imageService.uploadFromUrl(anyString(), anyString())).thenReturn("https://r2.dev/test.png");
     }
 
     @Test
@@ -100,6 +105,7 @@ public class RankServiceTest {
     @Test
     @DisplayName("updateRank 시 팀, 득점, 어시스트 순위 모두 캐시에 저장한다")
     void updateRank() throws JsonProcessingException {
+        given(seasonProvider.getCurrentSeason()).willReturn(2025);
         given(rankClient.fetchRank(2025)).willReturn(List.of(mockRankInfo()));
         given(rankClient.fetchTopScorers(2025)).willReturn(List.of(mockPlayerRankInfo()));
         given(rankClient.fetchTopAssists(2025)).willReturn(List.of(mockPlayerRankInfo()));
@@ -210,6 +216,6 @@ public class RankServiceTest {
     }
 
     private PlayerRankResponse mockPlayerRankResponse() {
-        return PlayerRankResponse.create(1, 1100L, "E. Haaland", "https://photo.png", 50L, "Manchester City", "https://logo.png", 27, 8, 35, 2958, 102, 59, 25);
+        return PlayerRankResponse.create(1, 1100L, "E. Haaland", "https://r2.dev/test.png", 50L, "Manchester City", "https://r2.dev/test.png", 27, 8, 35, 2958, 102, 59, 25);
     }
 }

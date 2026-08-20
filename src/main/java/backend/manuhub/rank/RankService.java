@@ -3,6 +3,8 @@ package backend.manuhub.rank;
 import backend.manuhub.common.util.SeasonProvider;
 import backend.manuhub.external.rank.PlayerRankApiResponse;
 import backend.manuhub.external.rank.RankClient;
+import backend.manuhub.external.rank.TeamRankApiResponse;
+import backend.manuhub.image.ImageService;
 import backend.manuhub.rank.dto.PlayerRankGetResponse;
 import backend.manuhub.rank.dto.PlayerRankResponse;
 import backend.manuhub.rank.dto.TeamRankGetResponse;
@@ -18,6 +20,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -35,10 +40,11 @@ public class RankService {
     private final SeasonProvider seasonProvider;
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final ImageService imageService;
 
 
     public TeamRankGetResponse getRank() {
-        int currentSeason = seasonProvider.getCurrentSeason();
+        int currentSeason = 2025;
         try {
             List<TeamRankResponse> result = getCache(RANK_CACHE_KEY, new TypeReference<>() {});
             if (result == null) {
@@ -53,7 +59,7 @@ public class RankService {
     }
 
     public PlayerRankGetResponse getTopScorers() {
-        int currentSeason = seasonProvider.getCurrentSeason();
+        int currentSeason = 2025;
         try {
             List<PlayerRankResponse> result = getCache(TOP_SCORERS_CACHE_KEY, new TypeReference<>() {});
             if (result == null) {
@@ -68,7 +74,7 @@ public class RankService {
     }
 
     public PlayerRankGetResponse getTopAssists() {
-        int currentSeason = seasonProvider.getCurrentSeason();
+        int currentSeason = 2025;
         try {
             List<PlayerRankResponse> result = getCache(TOP_ASSISTS_CACHE_KEY, new TypeReference<>() {});
             if (result == null) {
@@ -89,60 +95,79 @@ public class RankService {
         saveCache(TOP_ASSISTS_CACHE_KEY, toPlayerRankResponses(rankClient.fetchTopAssists(currentSeason), false));
     }
     private List<TeamRankResponse> fetchRankBySeason(int season) {
-        return rankClient.fetchRank(season).stream()
-                .map(r -> TeamRankResponse.create(
-                        r.rank(),
-                        r.team().id(),
-                        r.team().name(),
-                        r.team().logo(),
-                        r.points(),
-                        r.all().played(),
-                        r.all().win(),
-                        r.all().draw(),
-                        r.all().lose(),
-                        r.all().goals().goalsFor(),
-                        r.all().goals().goalsAgainst(),
-                        r.goalsDiff(),
-                        r.form()
-                ))
-                .toList();
+        List<TeamRankApiResponse.RankInfo> rankInfos = rankClient.fetchRank(season);
+
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<CompletableFuture<TeamRankResponse>> futures = rankInfos.stream()
+                    .map(r -> CompletableFuture.supplyAsync(() -> TeamRankResponse.create(
+                            r.rank(),
+                            r.team().id(),
+                            r.team().name(),
+                            imageService.uploadFromUrl(r.team().logo(), "teams/" + r.team().id() + ".png"),
+                            r.points(),
+                            r.all().played(),
+                            r.all().win(),
+                            r.all().draw(),
+                            r.all().lose(),
+                            r.all().goals().goalsFor(),
+                            r.all().goals().goalsAgainst(),
+                            r.goalsDiff(),
+                            r.form()
+                    ), executor))
+                    .toList();
+
+            return futures.stream()
+                    .map(CompletableFuture::join)
+                    .toList();
+        }
     }
 
     private List<PlayerRankResponse> toPlayerRankResponses(List<PlayerRankApiResponse.PlayerRankInfo> infos, boolean isScorer) {
-        List<PlayerRankResponse> result = new ArrayList<>();
-        int rank = 1;
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<CompletableFuture<PlayerRankResponse>> futures = infos.stream()
+                    .map(p -> CompletableFuture.supplyAsync(() -> {
+                        PlayerRankApiResponse.StatisticsInfo stats = p.statistics().get(0);
+                        return PlayerRankResponse.create(
+                                0,
+                                p.player().id(),
+                                p.player().name(),
+                                imageService.uploadFromUrl(p.player().photo(), "players/" + p.player().id() + ".png"),
+                                stats.team().id(),
+                                stats.team().name(),
+                                imageService.uploadFromUrl(stats.team().logo(), "teams/" + stats.team().id() + ".png"),
+                                stats.goals().total(),
+                                stats.goals().assists(),
+                                stats.games().appearences(),
+                                stats.games().minutes(),
+                                stats.shots().total(),
+                                stats.shots().on(),
+                                stats.passes().key()
+                        );
+                    }, executor))
+                    .toList();
 
-        for (int i = 0; i < infos.size(); i++) {
-            PlayerRankApiResponse.PlayerRankInfo p = infos.get(i);
-            PlayerRankApiResponse.StatisticsInfo stats = p.statistics().get(0);
-            int currentValue = isScorer ? stats.goals().total() : stats.goals().assists();
+            List<PlayerRankResponse> unranked = futures.stream()
+                    .map(CompletableFuture::join)
+                    .toList();
 
-            if (i > 0) {
-                PlayerRankApiResponse.StatisticsInfo prevStats = infos.get(i - 1).statistics().get(0);
-                int prevValue = isScorer ? prevStats.goals().total() : prevStats.goals().assists();
-                if (currentValue != prevValue) {
-                    rank = i + 1;
+            // 순위 계산
+            List<PlayerRankResponse> result = new ArrayList<>();
+            int rank = 1;
+            for (int i = 0; i < unranked.size(); i++) {
+                if (i > 0) {
+                    int prevValue = isScorer ? unranked.get(i - 1).goals() : unranked.get(i - 1).assists();
+                    int currentValue = isScorer ? unranked.get(i).goals() : unranked.get(i).assists();
+                    if (currentValue != prevValue) {
+                        rank = i + 1;
+                    }
                 }
+                PlayerRankResponse p = unranked.get(i);
+                result.add(PlayerRankResponse.create(rank, p.playerId(), p.playerName(), p.playerPhoto(),
+                        p.teamId(), p.teamName(), p.teamLogo(), p.goals(), p.assists(),
+                        p.appearences(), p.minutes(), p.shots(), p.shotsOnTarget(), p.keyPasses()));
             }
-
-            result.add(PlayerRankResponse.create(
-                    rank,
-                    p.player().id(),
-                    p.player().name(),
-                    p.player().photo(),
-                    stats.team().id(),
-                    stats.team().name(),
-                    stats.team().logo(),
-                    stats.goals().total(),
-                    stats.goals().assists(),
-                    stats.games().appearences(),
-                    stats.games().minutes(),
-                    stats.shots().total(),
-                    stats.shots().on(),
-                    stats.passes().key()
-            ));
+            return result;
         }
-        return result;
     }
 
     private <T> List<T> getCache(String key, TypeReference<List<T>> typeReference) {

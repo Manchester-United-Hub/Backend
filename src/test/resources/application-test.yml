@@ -39,3 +39,11 @@ retry:
     delay: 0
   rank:
     delay: 0
+
+cloudflare:
+  r2:
+    endpoint: https://test
+    public-url: https://test
+    access-key: test
+    secret-key: test
+    bucket: test
