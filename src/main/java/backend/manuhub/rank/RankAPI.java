@@ -4,6 +4,7 @@ import backend.manuhub.annotation.CommonErrorResponses;
 import backend.manuhub.rank.dto.PlayerRankGetResponse;
 import backend.manuhub.rank.dto.TeamRankGetResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -17,6 +18,13 @@ public interface RankAPI {
     @Operation(
             summary = "순위 관련 조회 API",
             description = "프리미어리그의 순위를 목록으로 조회합니다.",
+            parameters = {
+                    @Parameter(
+                            name = "season",
+                            description = "조회할 시즌 (예: 2025)",
+                            required = true,
+                            schema = @Schema(type = "integer", example = "2025"))
+            },
             responses = {
                     @ApiResponse(
                             responseCode = "200", description = "순위 조회 성공",
@@ -335,11 +343,18 @@ public interface RankAPI {
             }
     )
     @CommonErrorResponses
-    public ResponseEntity<TeamRankGetResponse> getPLRank();
+    public ResponseEntity<TeamRankGetResponse> getPLRank(int season);
 
     @Operation(
             summary = "득점 순위 조회 API",
             description = "프리미어리그 득점 순위를 조회합니다. 시즌 시작 전에는 빈 리스트를 반환합니다.",
+            parameters = {
+                    @Parameter(
+                            name = "season",
+                            description = "조회할 시즌 (예: 2025)",
+                            required = true,
+                            schema = @Schema(type = "integer", example = "2025"))
+            },
             responses = {
                     @ApiResponse(
                             responseCode = "200", description = "득점 순위 조회 성공",
@@ -673,11 +688,18 @@ public interface RankAPI {
                                              }
                                         """)))})
     @CommonErrorResponses
-    ResponseEntity<PlayerRankGetResponse> getPLTopScorers();
+    ResponseEntity<PlayerRankGetResponse> getPLTopScorers(int season);
 
     @Operation(
             summary = "어시스트 순위 조회 API",
             description = "프리미어리그 어시스트 순위를 조회합니다. 시즌 시작 전에는 빈 리스트를 반환합니다.",
+            parameters = {
+                    @Parameter(
+                            name = "season",
+                            description = "조회할 시즌 (예: 2025)",
+                            required = true,
+                            schema = @Schema(type = "integer", example = "2025"))
+            },
             responses = {
                     @ApiResponse(
                             responseCode = "200", description = "어시스트 순위 조회 성공",
@@ -1011,5 +1033,5 @@ public interface RankAPI {
                                              }
                                         """)))})
     @CommonErrorResponses
-    ResponseEntity<PlayerRankGetResponse> getPLTopAssists();
+    ResponseEntity<PlayerRankGetResponse> getPLTopAssists(int season);
 }

@@ -70,7 +70,7 @@ public class RankServiceTest {
         given(valueOperations.get(anyString())).willReturn("cachedJson");
         given(objectMapper.readValue(eq("cachedJson"), any(TypeReference.class))).willReturn(cached);
 
-        TeamRankGetResponse result = rankService.getRank();
+        TeamRankGetResponse result = rankService.getRank(2025);
 
         assertThat(result.ranks()).hasSize(1);
         assertThat(result.season()).isEqualTo("2025-26");
@@ -84,7 +84,7 @@ public class RankServiceTest {
         given(rankClient.fetchRank(2025)).willReturn(List.of(mockRankInfo()));
         given(objectMapper.writeValueAsString(any())).willReturn("json");
 
-        TeamRankGetResponse result = rankService.getRank();
+        TeamRankGetResponse result = rankService.getRank(2025);
 
         assertThat(result.ranks()).hasSize(1);
         then(valueOperations).should().set(anyString(), anyString(), anyLong(), any());
@@ -96,7 +96,7 @@ public class RankServiceTest {
         given(redisTemplate.opsForValue()).willThrow(new RedisException("Redis 오류"));
         given(rankClient.fetchRank(2025)).willReturn(List.of(mockRankInfo()));
 
-        TeamRankGetResponse result = rankService.getRank();
+        TeamRankGetResponse result = rankService.getRank(2025);
 
         assertThat(result.ranks()).hasSize(1);
         then(rankClient).should().fetchRank(2025);
@@ -126,7 +126,7 @@ public class RankServiceTest {
         given(valueOperations.get(anyString())).willReturn("cachedJson");
         given(objectMapper.readValue(eq("cachedJson"), any(TypeReference.class))).willReturn(cached);
 
-        PlayerRankGetResponse result = rankService.getTopScorers();
+        PlayerRankGetResponse result = rankService.getTopScorers(2025);
 
         assertThat(result.ranks()).hasSize(1);
         assertThat(result.season()).isEqualTo("2025-26");
@@ -140,7 +140,7 @@ public class RankServiceTest {
         given(rankClient.fetchTopScorers(2025)).willReturn(List.of(mockPlayerRankInfo()));
         given(objectMapper.writeValueAsString(any())).willReturn("json");
 
-        PlayerRankGetResponse result = rankService.getTopScorers();
+        PlayerRankGetResponse result = rankService.getTopScorers(2025);
 
         assertThat(result.ranks()).hasSize(1);
         then(valueOperations).should().set(anyString(), anyString(), anyLong(), any());
@@ -152,7 +152,7 @@ public class RankServiceTest {
         given(redisTemplate.opsForValue()).willThrow(new RedisException("Redis 오류"));
         given(rankClient.fetchTopScorers(2025)).willReturn(List.of(mockPlayerRankInfo()));
 
-        PlayerRankGetResponse result = rankService.getTopScorers();
+        PlayerRankGetResponse result = rankService.getTopScorers(2025);
 
         assertThat(result.ranks()).hasSize(1);
         then(rankClient).should().fetchTopScorers(2025);
@@ -165,7 +165,7 @@ public class RankServiceTest {
         given(valueOperations.get(anyString())).willReturn("cachedJson");
         given(objectMapper.readValue(eq("cachedJson"), any(TypeReference.class))).willReturn(cached);
 
-        PlayerRankGetResponse result = rankService.getTopAssists();
+        PlayerRankGetResponse result = rankService.getTopAssists(2025);
 
         assertThat(result.ranks()).hasSize(1);
         assertThat(result.season()).isEqualTo("2025-26");
@@ -179,7 +179,7 @@ public class RankServiceTest {
         given(rankClient.fetchTopAssists(2025)).willReturn(List.of(mockPlayerRankInfo()));
         given(objectMapper.writeValueAsString(any())).willReturn("json");
 
-        PlayerRankGetResponse result = rankService.getTopAssists();
+        PlayerRankGetResponse result = rankService.getTopAssists(2025);
 
         assertThat(result.ranks()).hasSize(1);
         then(valueOperations).should().set(anyString(), anyString(), anyLong(), any());
@@ -191,7 +191,7 @@ public class RankServiceTest {
         given(redisTemplate.opsForValue()).willThrow(new RedisException("Redis 오류"));
         given(rankClient.fetchTopAssists(2025)).willReturn(List.of(mockPlayerRankInfo()));
 
-        PlayerRankGetResponse result = rankService.getTopAssists();
+        PlayerRankGetResponse result = rankService.getTopAssists(2025);
 
         assertThat(result.ranks()).hasSize(1);
         then(rankClient).should().fetchTopAssists(2025);

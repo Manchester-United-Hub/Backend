@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -16,20 +17,20 @@ public class RankController implements RankAPI{
     private final RankService rankService;
 
     @GetMapping("/premier-league")
-    public ResponseEntity<TeamRankGetResponse> getPLRank() {
-        TeamRankGetResponse result = rankService.getRank();
+    public ResponseEntity<TeamRankGetResponse> getPLRank(@RequestParam int season) {
+        TeamRankGetResponse result = rankService.getRank(season);
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/premier-league/topscorers")
-    public ResponseEntity<PlayerRankGetResponse> getPLTopScorers() {
-        PlayerRankGetResponse result = rankService.getTopScorers();
+    public ResponseEntity<PlayerRankGetResponse> getPLTopScorers(@RequestParam int season) {
+        PlayerRankGetResponse result = rankService.getTopScorers(season);
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/premier-league/topassists")
-    public ResponseEntity<PlayerRankGetResponse> getPLTopAssists() {
-        PlayerRankGetResponse result = rankService.getTopAssists();
+    public ResponseEntity<PlayerRankGetResponse> getPLTopAssists(@RequestParam int season) {
+        PlayerRankGetResponse result = rankService.getTopAssists(season);
         return ResponseEntity.ok(result);
     }
 }

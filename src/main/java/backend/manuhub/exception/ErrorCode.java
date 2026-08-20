@@ -27,6 +27,7 @@ public enum ErrorCode {
     /**
      * common
      */
+    MISSING_REQUEST_PARAMETER_ERROR(HttpStatus.BAD_REQUEST, "MISSING_REQUEST_PARAMETER_ERROR", "필수 요청 파라미터가 누락되었습니다."),
     NOT_FOUND_ERROR(HttpStatus.NOT_FOUND, "NOT_FOUND_ERROR", "요청한 리소스를 찾을 수 없습니다."),
     METHOD_NOT_ALLOWED_ERROR(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED_ERROR", "허용되지 않는 HTTP 메서드입니다."),
     INVALID_REQUEST_ERROR(HttpStatus.BAD_REQUEST, "INVALID_REQUEST_ERROR", "잘못된 요청입니다."),

@@ -3,6 +3,7 @@ package backend.manuhub.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -32,6 +33,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
         ErrorCode errorCode = ErrorCode.METHOD_NOT_ALLOWED_ERROR;
         log.warn(">>> ExceptionHandler -> HttpRequestMethodNotSupportedException. code = {} ", errorCode.getCode(), e);
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ErrorResponse.from(errorCode));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
+        ErrorCode errorCode = ErrorCode.MISSING_REQUEST_PARAMETER_ERROR;
+        log.warn(">>> ExceptionHandler -> MissingServletRequestParameterException. code = {} ", errorCode.getCode(), e);
         return ResponseEntity.status(errorCode.getHttpStatus())
                 .body(ErrorResponse.from(errorCode));
     }
