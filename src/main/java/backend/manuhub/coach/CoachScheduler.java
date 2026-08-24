@@ -22,7 +22,7 @@ public class CoachScheduler {
     private final CoachService coachService;
 
     @Retryable(maxAttempts = 2, backoff = @Backoff(delayExpression = "${retry.coach.delay:30000}"), retryFor = {ApiServerException.class})
-    @Scheduled(cron = "0 0 9 * * THU")
+    @Scheduled(cron = "0 0 9 * * THU", zone = "Asia/Seoul")
     public void updateCoach() {
         List<Long> teamIds = coachService.getAllTeamIds();
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
