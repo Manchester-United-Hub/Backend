@@ -45,6 +45,22 @@ public class SeasonPlayerInitializeService {
             return;
         }
 
+        upsertSeasonPlayers(season);
+    }
+
+    @Retryable(
+            maxAttemptsExpression = "${retry.player.max-attempts:3}",
+            backoff = @Backoff(delayExpression = "${retry.player.delay:1000}", multiplier = 2),
+            retryFor = ApiServerException.class
+    )
+    @Transactional
+    public void syncSeasonPlayers(Integer season) {
+        log.info("[SeasonPlayer] Current season player synchronization started. season={}", season);
+        upsertSeasonPlayers(season);
+        log.info("[SeasonPlayer] Current season player synchronization completed. season={}", season);
+    }
+
+    private void upsertSeasonPlayers(Integer season) {
         List<PlayerApiResponse.Response> responses = playerClient.getManchesterUnitedPlayers(season);
         List<Player> savedPlayers = playerRepository.saveAll(PlayerMapper.toEntities(responses));
         Map<Long, Player> playersByPlayerId = savedPlayers.stream()
