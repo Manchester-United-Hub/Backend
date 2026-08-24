@@ -17,7 +17,7 @@ public class RankScheduler {
     private final RankService rankService;
 
     @Retryable(maxAttempts = 2, backoff = @Backoff(delayExpression = "${retry.rank.delay:30000}"), retryFor = {ApiServerException.class})
-    @Scheduled(cron = "0 0 9 * * *")
+    @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Seoul")
     public void updateRank() {
         rankService.updateRank();
     }
