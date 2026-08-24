@@ -1,10 +1,10 @@
 package backend.manuhub.player;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.List;
 
 public interface PlayerRepository extends JpaRepository<Player, Long> {
 
-    List<Player> findAllByOrderByNameAsc();
+    Page<Player> findAllByOrderByNameAscPlayerIdAsc(Pageable pageable);
 }

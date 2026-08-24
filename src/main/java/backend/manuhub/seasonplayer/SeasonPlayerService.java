@@ -4,8 +4,11 @@ import backend.manuhub.exception.ErrorCode;
 import backend.manuhub.exception.ManuHubException;
 import backend.manuhub.player.Player;
 import backend.manuhub.player.PlayerRepository;
+import backend.manuhub.seasonplayer.dto.SeasonPlayerListResponse;
 import backend.manuhub.seasonplayer.dto.SeasonPlayerResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,14 +28,15 @@ public class SeasonPlayerService {
     private final PlayerRepository playerRepository;
 
     @Transactional(readOnly = true)
-    public List<SeasonPlayerResponse> getSeasonPlayers(Integer season) {
-        List<Player> players = season == null
-                ? playerRepository.findAllByOrderByNameAsc()
-                : seasonPlayerRepository.findAllBySeasonWithPlayer(season).stream()
-                        .map(SeasonPlayer::getPlayer)
-                        .toList();
+    public SeasonPlayerListResponse getSeasonPlayers(Integer season, int page, int size) {
+        PageRequest pageRequest = PageRequest.of(page, size);
+        Page<Player> playerPage = season == null
+                ? playerRepository.findAllByOrderByNameAscPlayerIdAsc(pageRequest)
+                : seasonPlayerRepository.findAllBySeasonWithPlayer(season, pageRequest)
+                        .map(SeasonPlayer::getPlayer);
 
-        return toResponses(players);
+        List<SeasonPlayerResponse> players = toResponses(playerPage.getContent());
+        return SeasonPlayerListResponse.of(players, playerPage);
     }
 
     @Transactional(readOnly = true)

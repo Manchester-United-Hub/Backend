@@ -17,7 +17,7 @@ public class NewsScheduler {
     private final NewsService newsService;
 
     @Retryable(maxAttempts = 2, backoff = @Backoff(delayExpression = "${retry.news.delay:30000}"), retryFor = {ApiServerException.class})
-    @Scheduled(cron = "0 */3 * * * *")
+    @Scheduled(cron = "0 */3 * * * *", zone = "Asia/Seoul")
     public void syncNews() {
         newsService.syncRecentNews();
     }

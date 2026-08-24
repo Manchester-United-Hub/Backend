@@ -15,11 +15,15 @@ import java.util.NoSuchElementException;
 @Slf4j
 public class PlayerDetailMapper {
 
+    private static final Long PREMIER_LEAGUE_ID = 39L;
+
     public static List<PlayerDetail> toEntities(Integer season, List<PlayerApiResponse.Response> responses,
                                                  Map<Long, SeasonPlayer> playersByPlayerId) {
         try {
             return responses.stream()
                     .flatMap(response -> response.statistics().stream()
+                            .filter(statistics -> statistics.league() != null
+                                    && PREMIER_LEAGUE_ID.equals(statistics.league().id()))
                             .map(statistics -> toEntity(season, response.player().id(), statistics, playersByPlayerId)))
                     .toList();
         } catch (NullPointerException | NoSuchElementException e) {
