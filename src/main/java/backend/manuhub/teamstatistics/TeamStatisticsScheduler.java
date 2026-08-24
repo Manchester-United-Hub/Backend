@@ -13,7 +13,7 @@ import java.time.LocalDate;
 public class TeamStatisticsScheduler {
     private final TeamStatisticsInitializeService teamStatisticsInitializeService;
 
-    @Scheduled(cron = "0 0 3 1 6 *") // 임의로 6/1일
+    @Scheduled(cron = "0 0 3 1 6 *", zone = "Asia/Seoul") // 임의로 6/1일
     public void saveLastSeasonStatistics() {
         int season = LocalDate.now().getYear() - 1;
 
