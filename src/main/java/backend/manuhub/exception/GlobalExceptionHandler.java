@@ -1,5 +1,6 @@
 package backend.manuhub.exception;
 
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -12,6 +13,14 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException e) {
+        ErrorCode errorCode = ErrorCode.INVALID_REQUEST_ERROR;
+        log.warn(">>> ExceptionHandler -> ConstraintViolationException. code = {} ", errorCode.getCode(), e);
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ErrorResponse.from(errorCode));
+    }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleTypeMismatchException(MethodArgumentTypeMismatchException e) {
