@@ -53,6 +53,8 @@ class SeasonPlayerServiceTest {
         assertEquals(1, result.players().size());
         assertEquals(1485L, result.players().getFirst().id());
         assertEquals("Bruno Fernandes", result.players().getFirst().name());
+        assertEquals(8, result.players().getFirst().number());
+        assertEquals("Midfielder", result.players().getFirst().position());
         assertEquals(List.of(2024, 2025), result.players().getFirst().seasons());
         assertEquals(1, result.totalElements());
         assertEquals(0, result.page());
@@ -73,7 +75,7 @@ class SeasonPlayerServiceTest {
                 .thenReturn(new PageImpl<>(List.of(bruno, mount), pageRequest, 2));
         when(seasonPlayerRepository.findAllByPlayerIdInOrderByPlayerIdAscSeasonAsc(playerIds))
                 .thenReturn(List.of(
-                        seasonPlayer(bruno, 2024, 8),
+                        seasonPlayer(bruno, 2024, 18),
                         seasonPlayer(bruno, 2025, 8),
                         seasonPlayer(mount, 2025, 7)
                 ));
@@ -81,6 +83,9 @@ class SeasonPlayerServiceTest {
         SeasonPlayerListResponse result = seasonPlayerService.getSeasonPlayers(null, 0, 20);
 
         assertEquals(2, result.players().size());
+        assertEquals(8, result.players().getFirst().number());
+        assertEquals("Midfielder", result.players().getFirst().position());
+        assertEquals(7, result.players().get(1).number());
         assertEquals(List.of(2024, 2025), result.players().getFirst().seasons());
         assertEquals(List.of(2025), result.players().get(1).seasons());
         verify(seasonPlayerRepository, never()).findAllBySeasonWithPlayer(2025, pageRequest);
@@ -117,8 +122,28 @@ class SeasonPlayerServiceTest {
         SeasonPlayerResponse result = seasonPlayerService.getSeasonPlayer(1485L, 2025);
 
         assertEquals(1485L, result.id());
+        assertEquals(8, result.number());
+        assertEquals("Midfielder", result.position());
         assertEquals(List.of(2024, 2025), result.seasons());
         verify(seasonPlayerRepository).findById(id);
+    }
+
+    @Test
+    @DisplayName("season이 없으면 선수의 가장 최신 시즌 등번호와 포지션을 반환한다")
+    void getsPlayerWithLatestSeasonDataWhenSeasonIsNull() {
+        Player player = player(1485L, "Bruno Fernandes");
+        when(playerRepository.findById(1485L)).thenReturn(Optional.of(player));
+        when(seasonPlayerRepository.findAllByPlayerIdOrderBySeasonAsc(1485L))
+                .thenReturn(List.of(
+                        seasonPlayer(player, 2024, 18),
+                        seasonPlayer(player, 2025, 8)
+                ));
+
+        SeasonPlayerResponse result = seasonPlayerService.getSeasonPlayer(1485L, null);
+
+        assertEquals(8, result.number());
+        assertEquals("Midfielder", result.position());
+        assertEquals(List.of(2024, 2025), result.seasons());
     }
 
     @Test
