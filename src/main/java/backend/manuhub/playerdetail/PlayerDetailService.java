@@ -30,10 +30,15 @@ public class PlayerDetailService {
                 .stream()
                 .filter(detail -> PREMIER_LEAGUE_ID.equals(detail.getLeagueId()))
                 .toList();
-        List<Integer> seasons = seasonPlayerRepository.findAllByPlayerIdOrderBySeasonAsc(playerId).stream()
+        List<SeasonPlayer> seasonPlayers = seasonPlayerRepository.findAllByPlayerIdOrderBySeasonAsc(playerId);
+        SeasonPlayer latestSeasonPlayer = seasonPlayers.isEmpty() ? seasonPlayer : seasonPlayers.getLast();
+        List<Integer> seasons = seasonPlayers.stream()
                 .map(SeasonPlayer::getSeason)
                 .toList();
 
-        return PlayerDetailResponse.of(SeasonPlayerResponse.from(seasonPlayer.getPlayer(), seasons), details);
+        return PlayerDetailResponse.of(
+                SeasonPlayerResponse.from(seasonPlayer.getPlayer(), latestSeasonPlayer, seasons),
+                details
+        );
     }
 }
