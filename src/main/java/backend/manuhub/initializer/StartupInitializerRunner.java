@@ -49,7 +49,7 @@ public class StartupInitializerRunner implements CommandLineRunner {
 
     private void initializeTeamStatistics(int currentSeason) {
         initializeSeasonRange(
-                "TeamStatistics", TEAM_STATISTICS_START_SEASON, currentSeason, this::saveTeamStatistics
+                "TeamStatistics", TEAM_STATISTICS_START_SEASON, currentSeason - 1, this::saveTeamStatistics
         );
     }
 
