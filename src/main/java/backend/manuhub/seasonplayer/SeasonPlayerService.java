@@ -30,28 +30,28 @@ public class SeasonPlayerService {
     @Transactional(readOnly = true)
     public SeasonPlayerListResponse getSeasonPlayers(Integer season, int page, int size) {
         PageRequest pageRequest = PageRequest.of(page, size);
-        Page<Player> playerPage = season == null
-                ? playerRepository.findAllByOrderByNameAscPlayerIdAsc(pageRequest)
-                : seasonPlayerRepository.findAllBySeasonWithPlayer(season, pageRequest)
-                        .map(SeasonPlayer::getPlayer);
+        if (season == null) {
+            Page<Player> playerPage = playerRepository.findAllByOrderByNameAscPlayerIdAsc(pageRequest);
+            return SeasonPlayerListResponse.of(toResponses(playerPage.getContent()), playerPage);
+        }
 
-        List<SeasonPlayerResponse> players = toResponses(playerPage.getContent());
-        return SeasonPlayerListResponse.of(players, playerPage);
+        Page<SeasonPlayer> seasonPlayerPage = seasonPlayerRepository.findAllBySeasonWithPlayer(season, pageRequest);
+        return SeasonPlayerListResponse.of(toSeasonResponses(seasonPlayerPage.getContent()), seasonPlayerPage);
     }
 
     @Transactional(readOnly = true)
     public SeasonPlayerResponse getSeasonPlayer(Long playerId, Integer season) {
-        Player player = season == null
-                ? playerRepository.findById(playerId)
-                        .orElseThrow(() -> new ManuHubException(ErrorCode.NOT_FOUND_ERROR))
-                : seasonPlayerRepository.findById(new SeasonPlayerId(playerId, season))
-                        .map(SeasonPlayer::getPlayer)
-                        .orElseThrow(() -> new ManuHubException(ErrorCode.NOT_FOUND_ERROR));
+        if (season == null) {
+            Player player = playerRepository.findById(playerId)
+                    .orElseThrow(() -> new ManuHubException(ErrorCode.NOT_FOUND_ERROR));
+            List<SeasonPlayer> seasonPlayers = findSeasonPlayers(playerId);
+            SeasonPlayer latestSeasonPlayer = seasonPlayers.isEmpty() ? null : seasonPlayers.getLast();
+            return SeasonPlayerResponse.from(player, latestSeasonPlayer, toSeasons(seasonPlayers));
+        }
 
-        List<Integer> seasons = seasonPlayerRepository.findAllByPlayerIdOrderBySeasonAsc(playerId).stream()
-                .map(SeasonPlayer::getSeason)
-                .toList();
-        return SeasonPlayerResponse.from(player, seasons);
+        SeasonPlayer seasonPlayer = seasonPlayerRepository.findById(new SeasonPlayerId(playerId, season))
+                .orElseThrow(() -> new ManuHubException(ErrorCode.NOT_FOUND_ERROR));
+        return SeasonPlayerResponse.from(seasonPlayer, toSeasons(findSeasonPlayers(playerId)));
     }
 
     private List<SeasonPlayerResponse> toResponses(List<Player> players) {
@@ -62,6 +62,34 @@ public class SeasonPlayerService {
         Collection<Long> playerIds = players.stream()
                 .map(Player::getPlayerId)
                 .toList();
+        Map<Long, List<SeasonPlayer>> seasonPlayersByPlayerId = seasonPlayerRepository
+                .findAllByPlayerIdInOrderByPlayerIdAscSeasonAsc(playerIds)
+                .stream()
+                .collect(groupingBy(SeasonPlayer::getPlayerId));
+
+        return players.stream()
+                .map(player -> {
+                    List<SeasonPlayer> seasonPlayers = seasonPlayersByPlayerId.getOrDefault(
+                            player.getPlayerId(), List.of()
+                    );
+                    SeasonPlayer latestSeasonPlayer = seasonPlayers.isEmpty() ? null : seasonPlayers.getLast();
+                    return SeasonPlayerResponse.from(
+                            player,
+                            latestSeasonPlayer,
+                            toSeasons(seasonPlayers)
+                    );
+                })
+                .toList();
+    }
+
+    private List<SeasonPlayerResponse> toSeasonResponses(List<SeasonPlayer> seasonPlayers) {
+        if (seasonPlayers.isEmpty()) {
+            return List.of();
+        }
+
+        Collection<Long> playerIds = seasonPlayers.stream()
+                .map(SeasonPlayer::getPlayerId)
+                .toList();
         Map<Long, List<Integer>> seasonsByPlayerId = seasonPlayerRepository
                 .findAllByPlayerIdInOrderByPlayerIdAscSeasonAsc(playerIds)
                 .stream()
@@ -70,11 +98,21 @@ public class SeasonPlayerService {
                         mapping(SeasonPlayer::getSeason, toList())
                 ));
 
-        return players.stream()
-                .map(player -> SeasonPlayerResponse.from(
-                        player,
-                        seasonsByPlayerId.getOrDefault(player.getPlayerId(), List.of())
+        return seasonPlayers.stream()
+                .map(seasonPlayer -> SeasonPlayerResponse.from(
+                        seasonPlayer,
+                        seasonsByPlayerId.getOrDefault(seasonPlayer.getPlayerId(), List.of())
                 ))
+                .toList();
+    }
+
+    private List<SeasonPlayer> findSeasonPlayers(Long playerId) {
+        return seasonPlayerRepository.findAllByPlayerIdOrderBySeasonAsc(playerId);
+    }
+
+    private List<Integer> toSeasons(List<SeasonPlayer> seasonPlayers) {
+        return seasonPlayers.stream()
+                .map(SeasonPlayer::getSeason)
                 .toList();
     }
 }
