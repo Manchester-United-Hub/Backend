@@ -2,8 +2,8 @@ package backend.manuhub.seasonplayer;
 
 import backend.manuhub.external.player.PlayerApiResponse;
 import backend.manuhub.external.player.PlayerClient;
-import backend.manuhub.player.PlayerRepository;
-import backend.manuhub.playerdetail.PlayerDetailRepository;
+import backend.manuhub.player.PlayerImageService;
+import backend.manuhub.player.PlayerImageTarget;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,7 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,13 +27,13 @@ class SeasonPlayerInitializeServiceTest {
     private SeasonPlayerRepository seasonPlayerRepository;
 
     @Mock
-    private PlayerRepository playerRepository;
-
-    @Mock
     private PlayerClient playerClient;
 
     @Mock
-    private PlayerDetailRepository playerDetailRepository;
+    private SeasonPlayerPersistenceService seasonPlayerPersistenceService;
+
+    @Mock
+    private PlayerImageService playerImageService;
 
     @InjectMocks
     private SeasonPlayerInitializeService seasonPlayerInitializeService;
@@ -46,46 +46,15 @@ class SeasonPlayerInitializeServiceTest {
                         "Portugal", "179 cm", "69 kg", "photo"),
                 List.of(statistics())
         );
+        List<PlayerImageTarget> imageTargets = List.of(new PlayerImageTarget(1485L, "photo", "photo"));
         when(seasonPlayerRepository.existsBySeason(2023)).thenReturn(false);
         when(playerClient.getManchesterUnitedPlayers(2023)).thenReturn(List.of(response));
-        when(playerRepository.saveAll(org.mockito.ArgumentMatchers.anyList()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        when(seasonPlayerRepository.saveAll(org.mockito.ArgumentMatchers.anyList()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(seasonPlayerPersistenceService.save(2023, List.of(response))).thenReturn(imageTargets);
 
         seasonPlayerInitializeService.saveSeasonPlayers(2023);
 
-        verify(seasonPlayerRepository).saveAll(argThat(players -> {
-            var iterator = players.iterator();
-            if (!iterator.hasNext()) {
-                return false;
-            }
-
-            SeasonPlayer savedPlayer = iterator.next();
-            return !iterator.hasNext()
-                    && savedPlayer.getPlayerId().equals(1485L)
-                    && savedPlayer.getSeason().equals(2023)
-                    && savedPlayer.getPlayer().getName().equals("Bruno Fernandes");
-        }));
-        verify(playerRepository).saveAll(argThat(players -> {
-            var iterator = players.iterator();
-            return iterator.hasNext()
-                    && iterator.next().getPlayerId().equals(1485L)
-                    && !iterator.hasNext();
-        }));
-        verify(playerDetailRepository).saveAll(argThat(details -> {
-            var iterator = details.iterator();
-            if (!iterator.hasNext()) {
-                return false;
-            }
-
-            var detail = iterator.next();
-            return detail.getPlayerId().equals(1485L)
-                    && detail.getSeason().equals(2023)
-                    && detail.getLeagueId().equals(39L)
-                    && detail.getLeagueName().equals("Premier League")
-                    && !iterator.hasNext();
-        }));
+        verify(seasonPlayerPersistenceService).save(2023, List.of(response));
+        verify(playerImageService).uploadAndUpdate(imageTargets);
     }
 
     @Test
@@ -96,9 +65,8 @@ class SeasonPlayerInitializeServiceTest {
         seasonPlayerInitializeService.saveSeasonPlayers(2024);
 
         verify(playerClient, never()).getManchesterUnitedPlayers(2024);
-        verify(playerRepository, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
-        verify(seasonPlayerRepository, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
-        verify(playerDetailRepository, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
+        verify(seasonPlayerPersistenceService, never()).save(org.mockito.ArgumentMatchers.anyInt(), anyList());
+        verify(playerImageService, never()).uploadAndUpdate(anyList());
     }
 
     private PlayerApiResponse.Statistics statistics() {
