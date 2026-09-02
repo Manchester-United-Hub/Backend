@@ -38,6 +38,8 @@ public interface SeasonPlayerAPI {
                                           "nationality": "Portugal",
                                           "height": "179 cm",
                                           "weight": "69 kg",
+                                          "number": 8,
+                                          "position": "Midfielder",
                                           "photo": "https://media.api-sports.io/football/players/1485.png",
                                           "seasons": [2020, 2021, 2022, 2023, 2024, 2025]
                                         }

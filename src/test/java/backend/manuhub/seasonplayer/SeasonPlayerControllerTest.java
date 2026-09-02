@@ -41,6 +41,8 @@ class SeasonPlayerControllerTest {
         mockMvc.perform(get("/api/players").param("season", "2025"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.players[0].id").value(1485))
+                .andExpect(jsonPath("$.players[0].number").value(8))
+                .andExpect(jsonPath("$.players[0].position").value("Midfielder"))
                 .andExpect(jsonPath("$.players[0].seasons[0]").value(2024))
                 .andExpect(jsonPath("$.players[0].seasons[1]").value(2025))
                 .andExpect(jsonPath("$.page").value(0))
@@ -111,6 +113,8 @@ class SeasonPlayerControllerTest {
                 "Portugal",
                 "179 cm",
                 "69 kg",
+                8,
+                "Midfielder",
                 "photo",
                 List.of(2024, 2025)
         );

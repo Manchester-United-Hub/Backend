@@ -2,11 +2,8 @@ package backend.manuhub.match;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -16,19 +13,14 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "matches", uniqueConstraints = {
-        @UniqueConstraint(columnNames = "match_id")
-})
+@Table(name = "matches")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Match {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     @NotNull
-    @Column(name = "match_id")
+    @Column(name = "match_id", nullable = false)
     private Long matchId;
 
     @NotNull
@@ -116,5 +108,21 @@ public class Match {
         this.awayTeamWinner = awayTeamWinner;
         this.homeScore = homeScore;
         this.awayScore = awayScore;
+    }
+
+    void updateFrom(Match latestMatch) {
+        this.date = latestMatch.date;
+        this.venueName = latestMatch.venueName;
+        this.venueCity = latestMatch.venueCity;
+        this.homeTeamId = latestMatch.homeTeamId;
+        this.homeTeamName = latestMatch.homeTeamName;
+        this.homeTeamLogo = latestMatch.homeTeamLogo;
+        this.homeTeamWinner = latestMatch.homeTeamWinner;
+        this.awayTeamId = latestMatch.awayTeamId;
+        this.awayTeamName = latestMatch.awayTeamName;
+        this.awayTeamLogo = latestMatch.awayTeamLogo;
+        this.awayTeamWinner = latestMatch.awayTeamWinner;
+        this.homeScore = latestMatch.homeScore;
+        this.awayScore = latestMatch.awayScore;
     }
 }

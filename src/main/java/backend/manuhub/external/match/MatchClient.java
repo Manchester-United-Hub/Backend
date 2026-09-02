@@ -48,4 +48,28 @@ public class MatchClient {
                 league, season, teamId, response.response().size());
         return response.response();
     }
+
+    public MatchApiResponse.Response getMatch(Long matchId) {
+        log.info("[API-Football] Fixture request. matchId={}", matchId);
+
+        MatchApiResponse response = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/fixtures")
+                        .queryParam("id", matchId)
+                        .build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError,
+                        (req, res) -> { throw new ApiClientException(ErrorCode.API_FOOTBALL_CLIENT_ERROR); })
+                .onStatus(HttpStatusCode::is5xxServerError,
+                        (req, res) -> { throw new ApiServerException(ErrorCode.API_FOOTBALL_SERVER_ERROR); })
+                .body(MatchApiResponse.class);
+
+        if (response == null || response.response() == null || response.response().isEmpty()) {
+            log.warn(">>> MatchClient --> API-Football fixture response is empty. matchId={}", matchId);
+            throw new ApiServerException(ErrorCode.API_FOOTBALL_SERVER_ERROR);
+        }
+
+        log.info("[API-Football] Fixture request succeeded. matchId={}", matchId);
+        return response.response().getFirst();
+    }
 }

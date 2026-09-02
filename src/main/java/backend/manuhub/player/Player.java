@@ -54,4 +54,16 @@ public class Player {
         this.weight = weight;
         this.photo = photo;
     }
+
+    public void updateProfile(Player player) {
+        this.name = player.name;
+        this.birthDate = player.birthDate;
+        this.nationality = player.nationality;
+        this.height = player.height;
+        this.weight = player.weight;
+    }
+
+    public void updatePhoto(String photo) {
+        this.photo = photo;
+    }
 }

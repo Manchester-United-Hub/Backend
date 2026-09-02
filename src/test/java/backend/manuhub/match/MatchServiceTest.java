@@ -74,18 +74,18 @@ class MatchServiceTest {
     @DisplayName("경기 ID로 경기 상세를 조회한다")
     void getsMatchByMatchId() {
         Match match = createMatch(102L, LocalDateTime.of(2025, 9, 20, 23, 0), 3, 2);
-        when(matchRepository.findByMatchId(102L)).thenReturn(Optional.of(match));
+        when(matchRepository.findById(102L)).thenReturn(Optional.of(match));
 
         MatchResponse result = matchService.getMatch(102L);
 
         assertMatchResponse(result, match);
-        verify(matchRepository).findByMatchId(102L);
+        verify(matchRepository).findById(102L);
     }
 
     @Test
     @DisplayName("존재하지 않는 경기를 조회하면 예외가 발생한다")
     void throwsExceptionWhenMatchDoesNotExist() {
-        when(matchRepository.findByMatchId(999L)).thenReturn(Optional.empty());
+        when(matchRepository.findById(999L)).thenReturn(Optional.empty());
 
         ManuHubException exception = assertThrows(
                 ManuHubException.class,
@@ -93,7 +93,7 @@ class MatchServiceTest {
         );
 
         assertEquals(ErrorCode.NOT_FOUND_ERROR, exception.getErrorCode());
-        verify(matchRepository).findByMatchId(999L);
+        verify(matchRepository).findById(999L);
     }
 
     private Match createMatch(Long matchId, LocalDateTime date, Integer homeScore, Integer awayScore) {

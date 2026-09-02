@@ -34,7 +34,7 @@ public class MatchService {
 
     @Transactional(readOnly = true)
     public MatchResponse getMatch(Long matchId) {
-        return matchRepository.findByMatchId(matchId)
+        return matchRepository.findById(matchId)
                 .map(MatchResponse::from)
                 .orElseThrow(() -> new ManuHubException(ErrorCode.NOT_FOUND_ERROR));
     }

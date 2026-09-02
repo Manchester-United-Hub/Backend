@@ -14,6 +14,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -93,6 +94,12 @@ class MatchInitializeServiceTest {
 
         matchInitializeService.saveMatches(LEAGUE, SEASON, TEAM_ID);
 
+        assertEquals(
+                OffsetDateTime.parse("2025-08-17T15:30:00Z")
+                        .atZoneSameInstant(java.time.ZoneId.of("Asia/Seoul"))
+                        .toLocalDateTime(),
+                existingMatch.getDate()
+        );
         verify(matchRepository).saveAll(argThat(matches -> {
             var iterator = matches.iterator();
             return iterator.hasNext()
@@ -102,8 +109,8 @@ class MatchInitializeServiceTest {
     }
 
     @Test
-    @DisplayName("모든 경기가 이미 저장되어 있으면 저장을 생략한다")
-    void skipsSavingWhenAllMatchesAlreadyExist() {
+    @DisplayName("기존 경기만 있으면 신규 저장 없이 경기 정보를 갱신한다")
+    void updatesExistingMatchesWithoutSavingNewMatches() {
         MatchApiResponse.Response response = createResponse(100L, "2025-08-17T15:30:00Z");
         Match existingMatch = Match.create(
                 100L,
@@ -126,6 +133,43 @@ class MatchInitializeServiceTest {
 
         matchInitializeService.saveMatches(LEAGUE, SEASON, TEAM_ID);
 
+        assertEquals(
+                OffsetDateTime.parse("2025-08-17T15:30:00Z")
+                        .atZoneSameInstant(java.time.ZoneId.of("Asia/Seoul"))
+                        .toLocalDateTime(),
+                existingMatch.getDate()
+        );
+        verify(matchRepository, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
+    }
+
+    @Test
+    @DisplayName("경기 ID로 조회한 단일 경기 정보를 갱신한다")
+    void updatesSingleMatch() {
+        MatchApiResponse.Response response = createResponse(100L, "2025-08-17T15:30:00Z");
+        Match existingMatch = Match.create(
+                100L,
+                OffsetDateTime.parse("2025-08-17T15:30:00Z").toLocalDateTime(),
+                "Old Trafford",
+                "Manchester",
+                33L,
+                "Manchester United",
+                "home-logo",
+                null,
+                40L,
+                "Liverpool",
+                "away-logo",
+                null,
+                0,
+                0
+        );
+        when(matchClient.getMatch(100L)).thenReturn(response);
+        when(matchRepository.findAllByMatchIdIn(Set.of(100L))).thenReturn(List.of(existingMatch));
+
+        matchInitializeService.updateMatch(100L);
+
+        assertEquals(2, existingMatch.getHomeScore());
+        assertEquals(1, existingMatch.getAwayScore());
+        verify(matchClient).getMatch(100L);
         verify(matchRepository, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
     }
 
