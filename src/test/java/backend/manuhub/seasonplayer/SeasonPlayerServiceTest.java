@@ -19,10 +19,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SeasonPlayerServiceTest {
@@ -37,18 +35,18 @@ class SeasonPlayerServiceTest {
     private SeasonPlayerService seasonPlayerService;
 
     @Test
-    @DisplayName("season이 있으면 해당 시즌에 뛴 선수와 전체 활동 시즌을 반환한다")
-    void getsPlayersBySeasonWithAllPlayedSeasons() {
+    @DisplayName("season으로 필터링하면 해당 시즌에 뛴 선수와 전체 활동 시즌을 반환한다")
+    void getsPlayersBySeason() {
         Player player = player(1485L, "Bruno Fernandes");
         SeasonPlayer season2024 = seasonPlayer(player, 2024, 8);
         SeasonPlayer season2025 = seasonPlayer(player, 2025, 8);
         PageRequest pageRequest = PageRequest.of(0, 20);
-        when(seasonPlayerRepository.findAllBySeasonWithPlayer(2025, pageRequest))
+        when(seasonPlayerRepository.search(2025, null, null, pageRequest))
                 .thenReturn(new PageImpl<>(List.of(season2025), pageRequest, 1));
         when(seasonPlayerRepository.findAllByPlayerIdInOrderByPlayerIdAscSeasonAsc(List.of(1485L)))
                 .thenReturn(List.of(season2024, season2025));
 
-        SeasonPlayerListResponse result = seasonPlayerService.getSeasonPlayers(2025, 0, 20);
+        SeasonPlayerListResponse result = seasonPlayerService.getSeasonPlayers(2025, null, null, 0, 20);
 
         assertEquals(1, result.players().size());
         assertEquals(1485L, result.players().getFirst().id());
@@ -61,51 +59,83 @@ class SeasonPlayerServiceTest {
         assertEquals(20, result.size());
         assertEquals(1, result.totalPages());
         assertEquals(false, result.hasNext());
-        verify(playerRepository, never()).findAllByOrderByNameAscPlayerIdAsc(pageRequest);
     }
 
     @Test
-    @DisplayName("season이 없으면 전체 선수와 각 선수의 전체 활동 시즌을 반환한다")
-    void getsAllPlayersWithAllPlayedSeasonsWhenSeasonIsNull() {
+    @DisplayName("position으로 필터링하면 해당 포지션 선수만 반환한다")
+    void getsPlayersByPosition() {
+        Player player = player(1485L, "Bruno Fernandes");
+        SeasonPlayer seasonPlayer = seasonPlayer(player, 2025, 8);
+        PageRequest pageRequest = PageRequest.of(0, 20);
+        when(seasonPlayerRepository.search(null, "Midfielder", null, pageRequest))
+                .thenReturn(new PageImpl<>(List.of(seasonPlayer), pageRequest, 1));
+        when(seasonPlayerRepository.findAllByPlayerIdInOrderByPlayerIdAscSeasonAsc(List.of(1485L)))
+                .thenReturn(List.of(seasonPlayer));
+
+        SeasonPlayerListResponse result = seasonPlayerService.getSeasonPlayers(null, "Midfielder", null, 0, 20);
+
+        assertEquals(1, result.players().size());
+        assertEquals("Midfielder", result.players().getFirst().position());
+        verify(seasonPlayerRepository).search(null, "Midfielder", null, pageRequest);
+    }
+
+    @Test
+    @DisplayName("name으로 검색하면 이름에 해당 문자열이 포함된 선수만 반환한다")
+    void getsPlayersByName() {
+        Player player = player(1485L, "Bruno Fernandes");
+        SeasonPlayer seasonPlayer = seasonPlayer(player, 2025, 8);
+        PageRequest pageRequest = PageRequest.of(0, 20);
+        when(seasonPlayerRepository.search(null, null, "Bruno", pageRequest))
+                .thenReturn(new PageImpl<>(List.of(seasonPlayer), pageRequest, 1));
+        when(seasonPlayerRepository.findAllByPlayerIdInOrderByPlayerIdAscSeasonAsc(List.of(1485L)))
+                .thenReturn(List.of(seasonPlayer));
+
+        SeasonPlayerListResponse result = seasonPlayerService.getSeasonPlayers(null, null, "Bruno", 0, 20);
+
+        assertEquals(1, result.players().size());
+        assertEquals("Bruno Fernandes", result.players().getFirst().name());
+        verify(seasonPlayerRepository).search(null, null, "Bruno", pageRequest);
+    }
+
+    @Test
+    @DisplayName("season, position, name 파라미터가 모두 없으면 전체 선수를 반환한다")
+    void getsAllPlayersWhenNoFilter() {
         Player bruno = player(1485L, "Bruno Fernandes");
         Player mount = player(152982L, "Mason Mount");
-        List<Long> playerIds = List.of(1485L, 152982L);
         PageRequest pageRequest = PageRequest.of(0, 20);
-        when(playerRepository.findAllByOrderByNameAscPlayerIdAsc(pageRequest))
-                .thenReturn(new PageImpl<>(List.of(bruno, mount), pageRequest, 2));
-        when(seasonPlayerRepository.findAllByPlayerIdInOrderByPlayerIdAscSeasonAsc(playerIds))
-                .thenReturn(List.of(
-                        seasonPlayer(bruno, 2024, 18),
-                        seasonPlayer(bruno, 2025, 8),
-                        seasonPlayer(mount, 2025, 7)
-                ));
+        SeasonPlayer brunoSp2024 = seasonPlayer(bruno, 2024, 18);
+        SeasonPlayer brunoSp2025 = seasonPlayer(bruno, 2025, 8);
+        SeasonPlayer mountSp2025 = seasonPlayer(mount, 2025, 7);
 
-        SeasonPlayerListResponse result = seasonPlayerService.getSeasonPlayers(null, 0, 20);
+        when(seasonPlayerRepository.search(null, null, null, pageRequest))
+                .thenReturn(new PageImpl<>(List.of(brunoSp2025, mountSp2025), pageRequest, 2));
+        when(seasonPlayerRepository.findAllByPlayerIdInOrderByPlayerIdAscSeasonAsc(List.of(1485L, 152982L)))
+                .thenReturn(List.of(brunoSp2024, brunoSp2025, mountSp2025));
+
+        SeasonPlayerListResponse result = seasonPlayerService.getSeasonPlayers(null, null, null, 0, 20);
 
         assertEquals(2, result.players().size());
         assertEquals(8, result.players().getFirst().number());
-        assertEquals("Midfielder", result.players().getFirst().position());
-        assertEquals(7, result.players().get(1).number());
         assertEquals(List.of(2024, 2025), result.players().getFirst().seasons());
+        assertEquals(7, result.players().get(1).number());
         assertEquals(List.of(2025), result.players().get(1).seasons());
-        verify(seasonPlayerRepository, never()).findAllBySeasonWithPlayer(2025, pageRequest);
     }
 
     @Test
     @DisplayName("조회된 페이지가 비어 있으면 활동 시즌을 추가 조회하지 않는다")
     void doesNotLoadPlayedSeasonsForEmptyPage() {
         PageRequest pageRequest = PageRequest.of(3, 20);
-        when(playerRepository.findAllByOrderByNameAscPlayerIdAsc(pageRequest))
+        when(seasonPlayerRepository.search(null, null, null, pageRequest))
                 .thenReturn(new PageImpl<>(List.of(), pageRequest, 10));
 
-        SeasonPlayerListResponse result = seasonPlayerService.getSeasonPlayers(null, 3, 20);
+        SeasonPlayerListResponse result = seasonPlayerService.getSeasonPlayers(null, null, null, 3, 20);
 
         assertEquals(List.of(), result.players());
         assertEquals(3, result.page());
         assertEquals(10, result.totalElements());
         assertEquals(1, result.totalPages());
         assertEquals(false, result.hasNext());
-        verifyNoInteractions(seasonPlayerRepository);
+        verify(seasonPlayerRepository, never()).findAllByPlayerIdInOrderByPlayerIdAscSeasonAsc(any());
     }
 
     @Test
