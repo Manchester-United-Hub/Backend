@@ -36,7 +36,7 @@ class SeasonPlayerControllerTest {
     @Test
     @DisplayName("season 파라미터로 해당 시즌 선수 목록을 조회한다")
     void getsPlayersBySeason() throws Exception {
-        when(seasonPlayerService.getSeasonPlayers(2025, 0, 20)).thenReturn(listResponse());
+        when(seasonPlayerService.getSeasonPlayers(2025,null, null, 0, 20)).thenReturn(listResponse());
 
         mockMvc.perform(get("/api/players").param("season", "2025"))
                 .andExpect(status().isOk())
@@ -48,20 +48,20 @@ class SeasonPlayerControllerTest {
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(20));
 
-        verify(seasonPlayerService).getSeasonPlayers(2025, 0, 20);
+        verify(seasonPlayerService).getSeasonPlayers(2025, null,null,0, 20);
     }
 
     @Test
     @DisplayName("season 파라미터가 없으면 전체 선수 목록을 조회한다")
     void getsAllPlayersWhenSeasonIsMissing() throws Exception {
-        when(seasonPlayerService.getSeasonPlayers(null, 0, 20)).thenReturn(listResponse());
+        when(seasonPlayerService.getSeasonPlayers(null, null, null,0, 20)).thenReturn(listResponse());
 
         mockMvc.perform(get("/api/players"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.players[0].name").value("Bruno Fernandes"))
                 .andExpect(jsonPath("$.players[0].seasons.length()").value(2));
 
-        verify(seasonPlayerService).getSeasonPlayers(null, 0, 20);
+        verify(seasonPlayerService).getSeasonPlayers(null, null, null,0, 20);
     }
 
     @Test
@@ -70,7 +70,7 @@ class SeasonPlayerControllerTest {
         SeasonPlayerListResponse response = new SeasonPlayerListResponse(
                 List.of(response()), 2, 5, 13, 3, false
         );
-        when(seasonPlayerService.getSeasonPlayers(2025, 2, 5)).thenReturn(response);
+        when(seasonPlayerService.getSeasonPlayers(2025, null, null,2, 5)).thenReturn(response);
 
         mockMvc.perform(get("/api/players")
                         .param("season", "2025")
@@ -83,7 +83,7 @@ class SeasonPlayerControllerTest {
                 .andExpect(jsonPath("$.totalPages").value(3))
                 .andExpect(jsonPath("$.hasNext").value(false));
 
-        verify(seasonPlayerService).getSeasonPlayers(2025, 2, 5);
+        verify(seasonPlayerService).getSeasonPlayers(2025, null, null,2, 5);
     }
 
     @ParameterizedTest
