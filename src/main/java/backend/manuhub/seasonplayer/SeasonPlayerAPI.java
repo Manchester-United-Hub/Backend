@@ -21,7 +21,7 @@ public interface SeasonPlayerAPI {
 
     @Operation(
             summary = "선수 목록 조회 API",
-            description = "season을 전달하면 해당 시즌에 뛴 선수를 조회하고, 생략하면 전체 선수를 조회합니다. 선수 이름 오름차순으로 페이징합니다.",
+            description = "season, position, name을 전달하면 해당 조건으로 필터링해서 선수를 조회하고, 생략하면 전체 선수를 조회합니다. 선수 이름 오름차순으로 페이징합니다.",
             responses = @ApiResponse(
                     responseCode = "200",
                     description = "선수 목록 조회 성공",
@@ -29,34 +29,40 @@ public interface SeasonPlayerAPI {
                             mediaType = "application/json",
                             schema = @Schema(implementation = SeasonPlayerListResponse.class),
                             examples = @ExampleObject(value = """
+                                {
+                                  "players": [
                                     {
-                                      "players": [
-                                        {
-                                          "id": 1485,
-                                          "name": "Bruno Fernandes",
-                                          "birthDate": "1994-09-08",
-                                          "nationality": "Portugal",
-                                          "height": "179 cm",
-                                          "weight": "69 kg",
-                                          "number": 8,
-                                          "position": "Midfielder",
-                                          "photo": "https://media.api-sports.io/football/players/1485.png",
-                                          "seasons": [2020, 2021, 2022, 2023, 2024, 2025]
-                                        }
-                                      ],
-                                      "page": 0,
-                                      "size": 20,
-                                      "totalElements": 35,
-                                      "totalPages": 2,
-                                      "hasNext": true
+                                      "id": 1485,
+                                      "name": "Bruno Fernandes",
+                                      "birthDate": "1994-09-08",
+                                      "nationality": "Portugal",
+                                      "height": "179 cm",
+                                      "weight": "69 kg",
+                                      "number": 8,
+                                      "position": "Midfielder",
+                                      "photo": "https://media.api-sports.io/football/players/1485.png",
+                                      "seasons": [2020, 2021, 2022, 2023, 2024, 2025]
                                     }
-                                    """)))
+                                  ],
+                                  "page": 0,
+                                  "size": 20,
+                                  "totalElements": 35,
+                                  "totalPages": 2,
+                                  "hasNext": true
+                                }
+                                """)))
     )
     @CommonErrorResponses
     ResponseEntity<SeasonPlayerListResponse> getSeasonPlayers(
             @Parameter(description = "시즌 시작 연도", required = false,
                     schema = @Schema(type = "integer", example = "2025"))
             @RequestParam(required = false) Integer season,
+            @Parameter(description = "포지션", required = false,
+                    schema = @Schema(type = "string", example = "Midfielder"))
+            @RequestParam(required = false) String position,
+            @Parameter(description = "선수 이름 (부분 검색)", required = false,
+                    schema = @Schema(type = "string", example = "Bruno"))
+            @RequestParam(required = false) String name,
             @Parameter(description = "페이지 번호(0부터 시작)", required = false,
                     schema = @Schema(type = "integer", defaultValue = "0", minimum = "0"))
             @RequestParam(defaultValue = "0") @Min(0) int page,
