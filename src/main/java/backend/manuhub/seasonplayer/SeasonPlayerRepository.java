@@ -13,6 +13,21 @@ public interface SeasonPlayerRepository extends JpaRepository<SeasonPlayer, Seas
 
     boolean existsBySeason(Integer season);
 
+    @Query("""
+        SELECT sp FROM SeasonPlayer sp
+        JOIN FETCH sp.player p
+        WHERE (:season IS NULL OR sp.season = :season)
+        AND (:position IS NULL OR sp.position = :position)
+        AND (:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%')))
+        ORDER BY p.name, p.playerId
+        """)
+    Page<SeasonPlayer> search(
+            @Param("season") Integer season,
+            @Param("position") String position,
+            @Param("name") String name,
+            Pageable pageable
+    );
+
     @Query(value = """
             select sp
             from SeasonPlayer sp
