@@ -27,16 +27,23 @@ public class SeasonPlayerService {
     private final SeasonPlayerRepository seasonPlayerRepository;
     private final PlayerRepository playerRepository;
 
+//    @Transactional(readOnly = true)
+//    public SeasonPlayerListResponse getSeasonPlayers(Integer season, int page, int size) {
+//        PageRequest pageRequest = PageRequest.of(page, size);
+//        if (season == null) {
+//            Page<Player> playerPage = playerRepository.findAllByOrderByNameAscPlayerIdAsc(pageRequest);
+//            return SeasonPlayerListResponse.of(toResponses(playerPage.getContent()), playerPage);
+//        }
+//
+//        Page<SeasonPlayer> seasonPlayerPage = seasonPlayerRepository.findAllBySeasonWithPlayer(season, pageRequest);
+//        return SeasonPlayerListResponse.of(toSeasonResponses(seasonPlayerPage.getContent()), seasonPlayerPage);
+//    }
     @Transactional(readOnly = true)
-    public SeasonPlayerListResponse getSeasonPlayers(Integer season, int page, int size) {
+    public SeasonPlayerListResponse getSeasonPlayers(Integer season, String position, String name, int page, int size) {
         PageRequest pageRequest = PageRequest.of(page, size);
-        if (season == null) {
-            Page<Player> playerPage = playerRepository.findAllByOrderByNameAscPlayerIdAsc(pageRequest);
-            return SeasonPlayerListResponse.of(toResponses(playerPage.getContent()), playerPage);
-        }
-
-        Page<SeasonPlayer> seasonPlayerPage = seasonPlayerRepository.findAllBySeasonWithPlayer(season, pageRequest);
-        return SeasonPlayerListResponse.of(toSeasonResponses(seasonPlayerPage.getContent()), seasonPlayerPage);
+        Page<SeasonPlayer> searchResult = seasonPlayerRepository.search(season, position, name, pageRequest);
+        List<SeasonPlayerResponse> responses = toSeasonResponses(searchResult.getContent());
+        return SeasonPlayerListResponse.of(responses, searchResult);
     }
 
     @Transactional(readOnly = true)

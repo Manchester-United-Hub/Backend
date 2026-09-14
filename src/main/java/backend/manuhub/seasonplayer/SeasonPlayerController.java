@@ -22,9 +22,11 @@ public class SeasonPlayerController implements SeasonPlayerAPI {
     @GetMapping
     public ResponseEntity<SeasonPlayerListResponse> getSeasonPlayers(
             @RequestParam(required = false) Integer season,
+            @RequestParam(required = false) String position,
+            @RequestParam(required = false) String name,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(seasonPlayerService.getSeasonPlayers(season, page, size));
+        return ResponseEntity.ok(seasonPlayerService.getSeasonPlayers(season, position, name, page, size));
     }
 
     @GetMapping("/{playerId}")
