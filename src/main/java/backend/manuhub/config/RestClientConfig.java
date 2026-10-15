@@ -26,6 +26,13 @@ public class RestClientConfig {
     }
 
     @Bean
+    public RestClient youtubeRestClient(@Value("${external.youtube.base-uri}") String baseUri) {
+        return RestClient.builder()
+                .baseUrl(baseUri)
+                .build();
+    }
+
+    @Bean
     public RestClient defaultRestClient() {
         return RestClient.builder().build();
     }
