@@ -7,7 +7,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
 
   data:
     redis:
@@ -29,6 +29,11 @@ external:
     api-key: test
     api-base-uri: test
 
+  youtube:
+    api-key: test
+    channel-id: test
+    base-uri: test
+
 retry:
   team-statistics:
     max-attempts: 3
@@ -38,6 +43,8 @@ retry:
   coach:
     delay: 0
   rank:
+    delay: 0
+  highlight:
     delay: 0
 
 cloudflare:
