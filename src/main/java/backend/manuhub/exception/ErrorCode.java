@@ -25,6 +25,12 @@ public enum ErrorCode {
     NAVER_API_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "NAVER_API_SERVER_ERROR", "네이버 API 서버 오류입니다."),
 
     /**
+     * youtube api
+     */
+    YOUTUBE_CLIENT_ERROR(HttpStatus.BAD_GATEWAY, "YOUTUBE_CLIENT_ERROR", "YouTube API 요청 오류입니다."),
+    YOUTUBE_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "YOUTUBE_SERVER_ERROR", "YouTube API 서버 오류입니다."),
+
+    /**
      * common
      */
     MISSING_REQUEST_PARAMETER_ERROR(HttpStatus.BAD_REQUEST, "MISSING_REQUEST_PARAMETER_ERROR", "필수 요청 파라미터가 누락되었습니다."),
