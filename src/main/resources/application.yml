@@ -33,6 +33,11 @@ external:
     api-key: ${API_FOOTBALL_KEY}
     api-base-uri: ${API_BASE_URI}
 
+  youtube:
+    api-key: ${YOUTUBE_API_KEY}
+    channel-id: UC6yW44UGJJBvYTlfC7CRg2Q
+    base-uri: https://www.googleapis.com/youtube/v3
+
 retry:
   team-statistics:
     max-attempts: ${RETRY_TEAM_STATISTICS_MAX_ATTEMPTS:3}
