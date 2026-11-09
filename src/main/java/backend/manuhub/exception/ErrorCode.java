@@ -17,7 +17,10 @@ public enum ErrorCode {
     API_FOOTBALL_PLAYER_INVALID_RESPONSE_ERROR(HttpStatus.BAD_GATEWAY, "API_FOOTBALL_PLAYER_INVALID_RESPONSE_ERROR", "API FOOTBALL PLAYER 응답 구조가 올바르지 않습니다."),
 
     API_FOOTBALL_MATCH_INVALID_RESPONSE_ERROR(HttpStatus.BAD_GATEWAY, "API_FOOTBALL_MATCH_INVALID_RESPONSE_ERROR", "API FOOTBALL MATCH 응답 구조가 올바르지 않습니다."),
-
+    /**
+     * match
+     */
+    MATCH_NOT_FOUND_ERROR(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND_ERROR", "해당 경기를 찾을 수 없습니다."),
     /**
      * naver api
      */
