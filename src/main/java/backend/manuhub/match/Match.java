@@ -27,6 +27,20 @@ public class Match {
     @Column(name = "match_date")
     private LocalDateTime date;
 
+    // API-Football fixture.status.short 값입니다.
+    // TBD: 경기 시간 미정, NS: 경기 시작 전, 1H: 전반전 진행 중, HT: 하프타임,
+    // 2H: 후반전 진행 중, ET: 연장전 진행 중, BT: 연장전 휴식,
+    // P: 승부차기 진행 중, SUSP: 경기 일시 중단, INT: 경기 중단,
+    // FT: 정규시간 종료, AET: 연장전 종료, PEN: 승부차기 종료,
+    // PST: 경기 연기, CANC: 경기 취소, ABD: 경기 포기·중단,
+    // AWD: 몰수패 등 행정 판정 완료, WO: 상대 팀 불참으로 부전승 처리, LIVE: 경기 진행 중
+    @Column(name = "match_status")
+    private String status;
+
+    // API-Football league.round 원문입니다. 예: "Regular Season - 1"
+    @Column(name = "match_round")
+    private String round;
+
     @Column(name = "venue_name")
     private String venueName;
 
@@ -67,13 +81,20 @@ public class Match {
     @Column(name = "away_score")
     private Integer awayScore;
 
-    public static Match create(Long matchId, LocalDateTime date, String venueName, String venueCity,
+    @Column(name = "lineup_sync_status", nullable = false,
+            columnDefinition = "varchar(20) default 'pending'")
+    private String lineupSyncStatus = "pending";
+
+    public static Match create(Long matchId, LocalDateTime date, String status, String round,
+                               String venueName, String venueCity,
                                Long homeTeamId, String homeTeamName, String homeTeamLogo, Boolean homeTeamWinner,
                                Long awayTeamId, String awayTeamName, String awayTeamLogo, Boolean awayTeamWinner,
                                Integer homeScore, Integer awayScore) {
         return Match.builder()
                 .matchId(matchId)
                 .date(date)
+                .status(status)
+                .round(round)
                 .venueName(venueName)
                 .venueCity(venueCity)
                 .homeTeamId(homeTeamId)
@@ -90,12 +111,15 @@ public class Match {
     }
 
     @Builder(access = AccessLevel.PRIVATE)
-    private Match(Long matchId, LocalDateTime date, String venueName, String venueCity,
+    private Match(Long matchId, LocalDateTime date, String status, String round,
+                  String venueName, String venueCity,
                   Long homeTeamId, String homeTeamName, String homeTeamLogo, Boolean homeTeamWinner,
                   Long awayTeamId, String awayTeamName, String awayTeamLogo, Boolean awayTeamWinner,
                   Integer homeScore, Integer awayScore) {
         this.matchId = matchId;
         this.date = date;
+        this.status = status;
+        this.round = round;
         this.venueName = venueName;
         this.venueCity = venueCity;
         this.homeTeamId = homeTeamId;
@@ -112,6 +136,8 @@ public class Match {
 
     void updateFrom(Match latestMatch) {
         this.date = latestMatch.date;
+        this.status = latestMatch.status;
+        this.round = latestMatch.round;
         this.venueName = latestMatch.venueName;
         this.venueCity = latestMatch.venueCity;
         this.homeTeamId = latestMatch.homeTeamId;
@@ -124,5 +150,13 @@ public class Match {
         this.awayTeamWinner = latestMatch.awayTeamWinner;
         this.homeScore = latestMatch.homeScore;
         this.awayScore = latestMatch.awayScore;
+    }
+
+    public void completeLineupSync() {
+        this.lineupSyncStatus = "completed";
+    }
+
+    public void failLineupSync() {
+        this.lineupSyncStatus = "failed";
     }
 }
