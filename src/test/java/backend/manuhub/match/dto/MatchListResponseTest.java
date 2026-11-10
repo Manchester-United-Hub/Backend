@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class MatchListResponseTest {
 
@@ -33,12 +34,31 @@ class MatchListResponseTest {
         assertEquals(List.of(102L, 103L), result.upcomingMatches().stream()
                 .map(MatchResponse::matchId)
                 .toList());
+        assertEquals("Regular Season - 1", result.pastMatches().getFirst().round().name());
+        assertEquals(1, result.pastMatches().getFirst().round().number());
+    }
+
+    @Test
+    @DisplayName("숫자로 끝나더라도 구분자가 없는 토너먼트 라운드는 숫자로 변환하지 않는다")
+    void keepsKnockoutRoundAsNameOnly() {
+        Match match = createMatch(200L, LocalDateTime.of(2026, 3, 10, 21, 0), "Round of 16");
+
+        MatchResponse response = MatchResponse.from(match);
+
+        assertEquals("Round of 16", response.round().name());
+        assertNull(response.round().number());
     }
 
     private Match createMatch(Long matchId, LocalDateTime date) {
+        return createMatch(matchId, date, "Regular Season - 1");
+    }
+
+    private Match createMatch(Long matchId, LocalDateTime date, String round) {
         return Match.create(
                 matchId,
                 date,
+                "NS",
+                round,
                 "Old Trafford",
                 "Manchester",
                 33L,
