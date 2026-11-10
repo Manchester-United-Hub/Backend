@@ -100,6 +100,8 @@ class MatchServiceTest {
         return Match.create(
                 matchId,
                 date,
+                "FT",
+                "Regular Season - 1",
                 "Old Trafford",
                 "Manchester",
                 33L,
@@ -118,6 +120,9 @@ class MatchServiceTest {
     private void assertMatchResponse(MatchResponse response, Match match) {
         assertEquals(match.getMatchId(), response.matchId());
         assertEquals(match.getDate(), response.date());
+        assertEquals(match.getStatus(), response.status());
+        assertEquals(match.getRound(), response.round().name());
+        assertEquals(1, response.round().number());
         assertEquals(match.getVenueName(), response.venue().name());
         assertEquals(match.getVenueCity(), response.venue().city());
         assertEquals(match.getHomeTeamId(), response.homeTeam().teamId());

@@ -37,6 +37,8 @@ public class MatchMapper {
         return Match.create(
                 fixture.id(),
                 fixture.date().atZoneSameInstant(KOREA_ZONE).toLocalDateTime(),
+                fixture.status().shortCode(),
+                response.league().round(),
                 venue.name(),
                 venue.city(),
                 homeTeam.id(),

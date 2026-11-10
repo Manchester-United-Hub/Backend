@@ -32,6 +32,11 @@ public interface MatchAPI {
                                                     {
                                                         "matchId": 239625,
                                                         "date": "2020-02-06T23:00:00",
+                                                        "status": "FT",
+                                                        "round": {
+                                                            "name": "Regular Season - 24",
+                                                            "number": 24
+                                                        },
                                                         "venue": {
                                                             "name": "Stade Municipal",
                                                             "city": "Oued Zem"

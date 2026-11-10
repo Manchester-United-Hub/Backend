@@ -62,4 +62,8 @@ public class Team extends BaseTimeEntity {
         this.stadium = stadium;
         this.founded = founded;
     }
+
+    public void updateLogoUrl(String logoUrl) {
+        this.logoUrl = logoUrl;
+    }
 }

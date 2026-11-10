@@ -21,6 +21,9 @@ public enum ErrorCode {
      * match
      */
     MATCH_NOT_FOUND_ERROR(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND_ERROR", "해당 경기를 찾을 수 없습니다."),
+
+    API_FOOTBALL_LINEUP_INVALID_RESPONSE_ERROR(HttpStatus.BAD_GATEWAY, "API_FOOTBALL_LINEUP_INVALID_RESPONSE_ERROR", "API FOOTBALL LINEUP 응답 구조가 올바르지 않습니다."),
+
     /**
      * naver api
      */

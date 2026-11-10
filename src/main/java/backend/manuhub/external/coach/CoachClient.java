@@ -39,13 +39,19 @@ public class CoachClient {
             throw new ApiClientException(ErrorCode.API_FOOTBALL_CLIENT_ERROR);
         }
         return responses.stream()
+                .filter(coach -> coach.career() != null)
                 .filter(coach -> coach.career().stream()
-                        .anyMatch(c -> c.team().id().equals(teamId)))
-                .max(Comparator.comparing(coach -> coach.career().stream()
-                        .filter(c -> c.team().id().equals(teamId))
-                        .map(CoachApiResponse.CareerInfo::start)
-                        .findFirst()
-                        .orElse("")))
+                        .anyMatch(career -> career.team() != null && teamId.equals(career.team().id())))
+                .max(Comparator.comparing(coach -> latestStartForTeam(coach, teamId)))
                 .orElseThrow(() -> new ApiClientException(ErrorCode.API_FOOTBALL_CLIENT_ERROR));
+    }
+
+    private String latestStartForTeam(CoachApiResponse.CoachResponse coach, Long teamId) {
+        return coach.career().stream()
+                .filter(career -> career.team() != null && teamId.equals(career.team().id()))
+                .map(CoachApiResponse.CareerInfo::start)
+                .filter(start -> start != null)
+                .max(String::compareTo)
+                .orElse("");
     }
 }
