@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
@@ -23,6 +24,9 @@ class MatchSchedulerTest {
 
     private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 8, 26, 21, 0);
+    private static final Set<String> ACTIVE_STATUSES = Set.of(
+            "1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"
+    );
 
     @Mock
     private MatchRepository matchRepository;
@@ -52,22 +56,24 @@ class MatchSchedulerTest {
     }
 
     @Test
-    @DisplayName("경기 시작 후 3시간 이내의 경기가 있으면 해당 경기만 갱신한다")
+    @DisplayName("경기 시작 10분 전이거나 진행 중인 경기를 갱신한다")
     void updatesMatchesWhenMatchExistsInUpdateWindow() {
-        Match match = match(100L, NOW.minusHours(1));
-        when(matchRepository.findAllByDateAfterAndDateLessThanEqualOrderByDateAsc(NOW.minusHours(3), NOW))
-                .thenReturn(List.of(match));
+        Match notStartedMatch = match(100L, NOW.plusMinutes(10), "NS");
+        Match liveMatch = match(101L, NOW.minusHours(1), "2H");
+        when(matchRepository.findAllToUpdateBeforeAndDuringMatch("NS", NOW.plusMinutes(10), ACTIVE_STATUSES))
+                .thenReturn(List.of(notStartedMatch, liveMatch));
 
         matchScheduler.updateMatchesDuringMatchWindow();
 
         verify(matchInitializeService).updateMatch(100L);
+        verify(matchInitializeService).updateMatch(101L);
         verify(matchInitializeService, never()).saveMatches(39L, 2026, 33L);
     }
 
     @Test
-    @DisplayName("경기 시작 후 3시간 이내의 경기가 없으면 외부 API를 호출하지 않는다")
+    @DisplayName("갱신 대상 상태의 경기가 없으면 외부 API를 호출하지 않는다")
     void skipsUpdateWhenNoMatchExistsInUpdateWindow() {
-        when(matchRepository.findAllByDateAfterAndDateLessThanEqualOrderByDateAsc(NOW.minusHours(3), NOW))
+        when(matchRepository.findAllToUpdateBeforeAndDuringMatch("NS", NOW.plusMinutes(10), ACTIVE_STATUSES))
                 .thenReturn(List.of());
 
         matchScheduler.updateMatchesDuringMatchWindow();
@@ -76,10 +82,12 @@ class MatchSchedulerTest {
         verify(seasonProvider, never()).getCurrentSeason();
     }
 
-    private Match match(Long matchId, LocalDateTime date) {
+    private Match match(Long matchId, LocalDateTime date, String status) {
         return Match.create(
                 matchId,
                 date,
+                status,
+                "Regular Season - 1",
                 "Old Trafford",
                 "Manchester",
                 33L,
