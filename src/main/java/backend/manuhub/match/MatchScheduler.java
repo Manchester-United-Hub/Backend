@@ -10,6 +10,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -19,6 +20,10 @@ public class MatchScheduler {
     private static final Long PREMIER_LEAGUE_ID = 39L;
     private static final Long MANCHESTER_UNITED_TEAM_ID = 33L;
     private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
+    private static final String NOT_STARTED_STATUS = "NS";
+    private static final Set<String> ACTIVE_STATUSES = Set.of(
+            "1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"
+    );
 
     private final MatchRepository matchRepository;
     private final MatchInitializeService matchInitializeService;
@@ -34,12 +39,12 @@ public class MatchScheduler {
         log.info("[MatchScheduler] Current season match upsert completed. season={}", currentSeason);
     }
 
-    @Scheduled(cron = "0 */5 * * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 */3 * * * *", zone = "Asia/Seoul")
     public void updateMatchesDuringMatchWindow() {
         LocalDateTime now = LocalDateTime.ofInstant(clock.instant(), KOREA_ZONE);
-        LocalDateTime windowStart = now.minusHours(3);
+        LocalDateTime preMatchCutoff = now.plusMinutes(10);
         List<Long> matchIds = matchRepository
-                .findAllByDateAfterAndDateLessThanEqualOrderByDateAsc(windowStart, now)
+                .findAllToUpdateBeforeAndDuringMatch(NOT_STARTED_STATUS, preMatchCutoff, ACTIVE_STATUSES)
                 .stream()
                 .map(Match::getMatchId)
                 .toList();
@@ -48,9 +53,9 @@ public class MatchScheduler {
             return;
         }
 
-        log.info("[MatchScheduler] Live-window match update started. matchIds={}, windowStart={}, now={}",
-                matchIds, windowStart, now);
+        log.info("[MatchScheduler] Pre-match and live match update started. matchIds={}, preMatchCutoff={}, now={}",
+                matchIds, preMatchCutoff, now);
         matchIds.forEach(matchInitializeService::updateMatch);
-        log.info("[MatchScheduler] Live-window match update completed. matchIds={}", matchIds);
+        log.info("[MatchScheduler] Pre-match and live match update completed. matchIds={}", matchIds);
     }
 }
