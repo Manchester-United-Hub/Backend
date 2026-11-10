@@ -59,6 +59,8 @@ class MatchInitializeServiceTest {
                     && savedMatch.getDate().equals(OffsetDateTime.parse("2025-08-17T15:30:00Z")
                     .atZoneSameInstant(java.time.ZoneId.of("Asia/Seoul"))
                     .toLocalDateTime())
+                    && savedMatch.getStatus().equals("FT")
+                    && savedMatch.getRound().equals("Regular Season - 1")
                     && savedMatch.getHomeTeamName().equals("Manchester United")
                     && savedMatch.getAwayTeamName().equals("Liverpool")
                     && savedMatch.getHomeScore().equals(2)
@@ -74,6 +76,8 @@ class MatchInitializeServiceTest {
         Match existingMatch = Match.create(
                 100L,
                 OffsetDateTime.parse("2025-08-17T15:30:00Z").toLocalDateTime(),
+                "NS",
+                "Regular Season - 1",
                 "Old Trafford",
                 "Manchester",
                 33L,
@@ -115,6 +119,8 @@ class MatchInitializeServiceTest {
         Match existingMatch = Match.create(
                 100L,
                 OffsetDateTime.parse("2025-08-17T15:30:00Z").toLocalDateTime(),
+                "NS",
+                "Regular Season - 1",
                 "Old Trafford",
                 "Manchester",
                 33L,
@@ -149,6 +155,8 @@ class MatchInitializeServiceTest {
         Match existingMatch = Match.create(
                 100L,
                 OffsetDateTime.parse("2025-08-17T15:30:00Z").toLocalDateTime(),
+                "NS",
+                "Regular Season - 1",
                 "Old Trafford",
                 "Manchester",
                 33L,
@@ -169,6 +177,8 @@ class MatchInitializeServiceTest {
 
         assertEquals(2, existingMatch.getHomeScore());
         assertEquals(1, existingMatch.getAwayScore());
+        assertEquals("FT", existingMatch.getStatus());
+        assertEquals("Regular Season - 1", existingMatch.getRound());
         verify(matchClient).getMatch(100L);
         verify(matchRepository, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
     }
@@ -178,9 +188,10 @@ class MatchInitializeServiceTest {
                 new MatchApiResponse.Fixture(
                         matchId,
                         OffsetDateTime.parse(date),
-                        new MatchApiResponse.Venue(1L, "Old Trafford", "Manchester")
+                        new MatchApiResponse.Venue(1L, "Old Trafford", "Manchester"),
+                        new MatchApiResponse.Status("Match Finished", "FT", 90, null)
                 ),
-                new MatchApiResponse.League(LEAGUE, "Premier League", "England", SEASON, "Regular Season"),
+                new MatchApiResponse.League(LEAGUE, "Premier League", "England", SEASON, "Regular Season - 1"),
                 new MatchApiResponse.Teams(
                         new MatchApiResponse.Team(33L, "Manchester United", "home-logo", true),
                         new MatchApiResponse.Team(40L, "Liverpool", "away-logo", false)
