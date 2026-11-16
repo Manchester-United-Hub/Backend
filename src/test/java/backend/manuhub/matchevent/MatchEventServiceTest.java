@@ -75,6 +75,7 @@ public class MatchEventServiceTest {
     @DisplayName("저장된 이벤트가 없으면 API에서 가져와 저장하고, 재조회한 결과를 반환한다")
     void getMatchEvents_fallbackSavesAndReturnsReloaded() {
         Match match = mock(Match.class);
+        given(match.isFinished()).willReturn(true);
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(match));
         given(matchEventRepository.findAllByMatch_MatchIdOrderByElapsedMinuteAscExtraMinuteAscIdAsc(MATCH_ID))
                 .willReturn(List.of())
@@ -91,9 +92,26 @@ public class MatchEventServiceTest {
     }
 
     @Test
+    @DisplayName("저장된 이벤트가 없어도 종료되지 않은 경기는 API를 조회하지 않고 빈 목록을 반환한다")
+    void getMatchEvents_notFinished() {
+        Match match = mock(Match.class); // isFinished()는 mock 기본값 false
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(match));
+        given(matchEventRepository.findAllByMatch_MatchIdOrderByElapsedMinuteAscExtraMinuteAscIdAsc(MATCH_ID))
+                .willReturn(List.of());
+
+        MatchEventListGetResponse response = matchEventService.getMatchEvents(MATCH_ID);
+
+        assertThat(response.matchId()).isEqualTo(MATCH_ID);
+        assertThat(response.events()).isEmpty();
+        verify(matchEventClient, never()).fetchEvents(any());
+        verify(matchEventUpdateService, never()).updateMatchEvents(any(), any());
+    }
+
+    @Test
     @DisplayName("API 응답도 비어 있으면 저장·재조회 없이 빈 목록을 반환한다")
     void getMatchEvents_emptyApiResponse() {
         Match match = mock(Match.class);
+        given(match.isFinished()).willReturn(true);
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(match));
         given(matchEventRepository.findAllByMatch_MatchIdOrderByElapsedMinuteAscExtraMinuteAscIdAsc(MATCH_ID))
                 .willReturn(List.of());
@@ -212,7 +230,9 @@ public class MatchEventServiceTest {
         assertThat(saved.type()).isEqualTo(MatchEventType.SUBSTITUTION);
     }
 
+    // 종료된 경기이고 저장된 이벤트가 없는 상황 (fallback으로 API를 조회하는 경우)
     private void stubEmptyStoredEvents(Match match) {
+        given(match.isFinished()).willReturn(true);
         given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(match));
         given(matchEventRepository.findAllByMatch_MatchIdOrderByElapsedMinuteAscExtraMinuteAscIdAsc(MATCH_ID))
                 .willReturn(List.of());
