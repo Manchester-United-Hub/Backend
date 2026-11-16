@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -24,14 +25,14 @@ public class MatchEventService {
     private final MatchEventRepository matchEventRepository;
     private final MatchEventClient matchEventClient;
     private final MatchRepository matchRepository;
-
+    private static final Set<String> FINISHED_STATUSES = Set.of("FT", "AET", "PEN");
 
     public MatchEventListGetResponse getMatchEvents(Long matchId) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new MatchNotFoundException(ErrorCode.MATCH_NOT_FOUND_ERROR));
 
         List<MatchEvent> events = matchEventRepository.findAllByMatch_MatchIdOrderByElapsedMinuteAscExtraMinuteAscIdAsc(matchId);
-        if (events.isEmpty() ) { // + 종료된 경기인지 판별
+        if (events.isEmpty() && match.isFinished()) { // + 종료된 경기인지 판별
             List<MatchEventResponse> newEvents = fetchMatchEvents(matchId);
             if (!newEvents.isEmpty()) {
                 matchEventUpdateService.updateMatchEvents(match, newEvents);
@@ -40,6 +41,8 @@ public class MatchEventService {
         }
         return MatchEventListGetResponse.of(matchId, events);
     }
+
+
     private List<MatchEventResponse> fetchMatchEvents(Long matchId) {
         return matchEventClient.fetchEvents(matchId).stream()
                 .map(this::toResponse)
