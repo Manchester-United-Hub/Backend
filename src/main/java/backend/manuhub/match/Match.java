@@ -11,12 +11,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Entity
 @Table(name = "matches")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Match {
+
+    private static final Set<String> FINISHED_STATUSES = Set.of("FT", "AET", "PEN");
 
     @Id
     @NotNull
@@ -158,5 +161,9 @@ public class Match {
 
     public void failLineupSync() {
         this.lineupSyncStatus = "failed";
+    }
+
+    public boolean isFinished() {
+        return status != null && FINISHED_STATUSES.contains(status);
     }
 }
