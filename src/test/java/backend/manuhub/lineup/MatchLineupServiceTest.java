@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -50,6 +50,9 @@ class MatchLineupServiceTest {
     @MockitoBean
     private LineupReferenceSyncService lineupReferenceSyncService;
 
+    @MockitoBean
+    private LineupReferenceQueryService lineupReferenceQueryService;
+
     @AfterEach
     void clear() {
         lineupPlayerRepository.deleteAll();
@@ -58,30 +61,39 @@ class MatchLineupServiceTest {
     }
 
     @Test
-    @DisplayName("API 라인업을 저장하고 다음 조회에서는 DB 라인업을 반환한다")
-    void savesApiLineupAndReadsSavedLineup() {
+    @DisplayName("저장된 라인업을 외부 동기화 없이 조회한다")
+    void readsSavedLineupWithoutExternalSynchronization() {
         matchRepository.save(createMatch());
-        given(lineupClient.getLineups(MATCH_ID)).willReturn(createLineups());
-        given(lineupReferenceSyncService.syncApiReferences(anyList())).willReturn(createReferences());
-        given(lineupReferenceSyncService.sync(anyList(), anyList())).willReturn(createReferences());
+        List<MatchLineup> lineups = saveLineups();
+        saveLineupPlayers(lineups);
+        given(lineupReferenceQueryService.load(anyList())).willReturn(createReferences());
 
-        MatchLineupResponse firstResponse = matchLineupService.getLineup(MATCH_ID);
+        MatchLineupResponse response = matchLineupService.getLineup(MATCH_ID);
 
-        assertAvailableLineup(firstResponse);
+        assertAvailableLineup(response);
         assertThat(matchLineupRepository.findAllByMatchId(MATCH_ID))
                 .hasSize(2)
                 .extracting(MatchLineup::getTeamType)
                 .containsExactlyInAnyOrder("home", "away");
         assertThat(lineupPlayerRepository.findAll()).hasSize(4);
-        assertThat(matchRepository.findById(MATCH_ID).orElseThrow().getLineupSyncStatus())
-                .isEqualTo("completed");
+        then(lineupClient).should(never()).getLineups(MATCH_ID);
+        then(lineupReferenceSyncService).shouldHaveNoInteractions();
+        then(lineupReferenceQueryService).should().load(anyList());
+    }
 
-        MatchLineupResponse secondResponse = matchLineupService.getLineup(MATCH_ID);
+    @Test
+    @DisplayName("저장된 라인업이 없으면 외부 API를 호출하지 않고 미제공 상태를 반환한다")
+    void returnsNotAvailableWithoutExternalCall() {
+        matchRepository.save(createMatch());
 
-        assertAvailableLineup(secondResponse);
-        then(lineupClient).should(times(1)).getLineups(MATCH_ID);
-        then(lineupReferenceSyncService).should(times(2))
-                .sync(org.mockito.ArgumentMatchers.anyList(), org.mockito.ArgumentMatchers.anyList());
+        MatchLineupResponse response = matchLineupService.getLineup(MATCH_ID);
+
+        assertThat(response.lineupStatus()).isEqualTo(MatchLineupResponse.LineupStatus.NOT_AVAILABLE);
+        assertThat(response.home()).isNull();
+        assertThat(response.away()).isNull();
+        then(lineupClient).shouldHaveNoInteractions();
+        then(lineupReferenceSyncService).shouldHaveNoInteractions();
+        then(lineupReferenceQueryService).shouldHaveNoInteractions();
     }
 
     @Test
@@ -101,19 +113,20 @@ class MatchLineupServiceTest {
     }
 
     @Test
-    @DisplayName("배치 백필에서 라인업을 찾지 못하면 failed 상태로 변경한다")
-    void marksFailedWhenBackfillLineupIsUnavailable() {
+    @DisplayName("배치 백필에서 라인업을 찾지 못하면 미완료 결과를 반환한다")
+    void returnsIncompleteWhenBackfillLineupIsUnavailable() {
         matchRepository.save(createMatch());
         given(lineupClient.getLineups(MATCH_ID)).willReturn(List.of());
         given(lineupReferenceSyncService.syncApiReferences(anyList())).willReturn(
                 new LineupReferenceData(Map.of(), Map.of()));
 
-        matchLineupService.backfillLineup(MATCH_ID);
+        boolean completed = matchLineupService.backfillLineup(MATCH_ID);
 
+        assertThat(completed).isFalse();
         assertThat(matchLineupRepository.findAllByMatchId(MATCH_ID)).isEmpty();
         assertThat(lineupPlayerRepository.findAll()).isEmpty();
         assertThat(matchRepository.findById(MATCH_ID).orElseThrow().getLineupSyncStatus())
-                .isEqualTo("failed");
+                .isEqualTo("pending");
         then(lineupReferenceSyncService).should().syncApiReferences(anyList());
     }
 
@@ -155,6 +168,30 @@ class MatchLineupServiceTest {
                         List.of(lineupPlayer(4L, "Away Substitute", 21, "D", null))
                 )
         );
+    }
+
+    private List<MatchLineup> saveLineups() {
+        return matchLineupRepository.saveAll(List.of(
+                MatchLineup.create(MATCH_ID, "home", 33L, "3-4-2-1", 100L),
+                MatchLineup.create(MATCH_ID, "away", 40L, "4-3-3", 200L)
+        ));
+    }
+
+    private void saveLineupPlayers(List<MatchLineup> lineups) {
+        MatchLineup home = lineups.stream()
+                .filter(lineup -> "home".equals(lineup.getTeamType()))
+                .findFirst()
+                .orElseThrow();
+        MatchLineup away = lineups.stream()
+                .filter(lineup -> "away".equals(lineup.getTeamType()))
+                .findFirst()
+                .orElseThrow();
+        lineupPlayerRepository.saveAll(List.of(
+                LineupPlayer.create(home.getId(), 1L, "Home Starter", 10, "F", "4:1", "starter", 0),
+                LineupPlayer.create(home.getId(), 2L, "Home Substitute", 20, "M", null, "substitute", 0),
+                LineupPlayer.create(away.getId(), 3L, "Away Starter", 9, "F", "4:2", "starter", 0),
+                LineupPlayer.create(away.getId(), 4L, "Away Substitute", 21, "D", null, "substitute", 0)
+        ));
     }
 
     private LineupReferenceData createReferences() {
