@@ -71,6 +71,26 @@ class SeasonPlayerPaginationRepositoryTest {
         assertEquals(false, secondPage.hasNext());
     }
 
+    @Test
+    @DisplayName("시즌이 없을 때 포지션 이력이 있는 선수를 중복 없이 조회한다")
+    void findsDistinctPlayersByPositionHistory() {
+        Player bruno = player(30L, "Bruno Fernandes");
+        Player mount = player(40L, "Mason Mount");
+        playerRepository.saveAll(List.of(bruno, mount));
+        seasonPlayerRepository.saveAll(List.of(
+                seasonPlayer(bruno, 2025, "Midfielder"),
+                seasonPlayer(bruno, 2026, "Midfielder"),
+                seasonPlayer(mount, 2026, "Attacker")
+        ));
+
+        Page<Player> result = playerRepository.searchPlayers(
+                "Midfielder", null, PageRequest.of(0, 20)
+        );
+
+        assertEquals(List.of(30L), playerIds(result));
+        assertEquals(1, result.getTotalElements());
+    }
+
     private List<Long> playerIds(Page<Player> page) {
         return page.getContent().stream().map(Player::getPlayerId).toList();
     }
@@ -84,10 +104,15 @@ class SeasonPlayerPaginationRepositoryTest {
     }
 
     private SeasonPlayer seasonPlayer(Player player, Integer season) {
+        return seasonPlayer(player, season, null);
+    }
+
+    private SeasonPlayer seasonPlayer(Player player, Integer season, String position) {
         return SeasonPlayer.builder()
                 .playerId(player.getPlayerId())
                 .season(season)
                 .player(player)
+                .position(position)
                 .build();
     }
 }
