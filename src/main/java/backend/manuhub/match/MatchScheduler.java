@@ -42,9 +42,16 @@ public class MatchScheduler {
     @Scheduled(cron = "0 */3 * * * *", zone = "Asia/Seoul")
     public void updateMatchesDuringMatchWindow() {
         LocalDateTime now = LocalDateTime.ofInstant(clock.instant(), KOREA_ZONE);
+        // NS 상태가 비정상적으로 남아도 하루가 지난 경기는 반복 호출하지 않는다.
+        LocalDateTime notStartedWindowStart = now.minusDays(1);
         LocalDateTime preMatchCutoff = now.plusMinutes(10);
         List<Long> matchIds = matchRepository
-                .findAllToUpdateBeforeAndDuringMatch(NOT_STARTED_STATUS, preMatchCutoff, ACTIVE_STATUSES)
+                .findAllToUpdateBeforeAndDuringMatch(
+                        NOT_STARTED_STATUS,
+                        notStartedWindowStart,
+                        preMatchCutoff,
+                        ACTIVE_STATUSES
+                )
                 .stream()
                 .map(Match::getMatchId)
                 .toList();
