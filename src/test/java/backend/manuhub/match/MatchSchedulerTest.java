@@ -60,7 +60,8 @@ class MatchSchedulerTest {
     void updatesMatchesWhenMatchExistsInUpdateWindow() {
         Match notStartedMatch = match(100L, NOW.plusMinutes(10), "NS");
         Match liveMatch = match(101L, NOW.minusHours(1), "2H");
-        when(matchRepository.findAllToUpdateBeforeAndDuringMatch("NS", NOW.plusMinutes(10), ACTIVE_STATUSES))
+        when(matchRepository.findAllToUpdateBeforeAndDuringMatch(
+                "NS", NOW.minusDays(1), NOW.plusMinutes(10), ACTIVE_STATUSES))
                 .thenReturn(List.of(notStartedMatch, liveMatch));
 
         matchScheduler.updateMatchesDuringMatchWindow();
@@ -73,7 +74,8 @@ class MatchSchedulerTest {
     @Test
     @DisplayName("갱신 대상 상태의 경기가 없으면 외부 API를 호출하지 않는다")
     void skipsUpdateWhenNoMatchExistsInUpdateWindow() {
-        when(matchRepository.findAllToUpdateBeforeAndDuringMatch("NS", NOW.plusMinutes(10), ACTIVE_STATUSES))
+        when(matchRepository.findAllToUpdateBeforeAndDuringMatch(
+                "NS", NOW.minusDays(1), NOW.plusMinutes(10), ACTIVE_STATUSES))
                 .thenReturn(List.of());
 
         matchScheduler.updateMatchesDuringMatchWindow();

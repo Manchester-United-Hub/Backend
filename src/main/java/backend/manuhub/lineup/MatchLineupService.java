@@ -9,9 +9,7 @@ import backend.manuhub.match.Match;
 import backend.manuhub.match.MatchRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -20,66 +18,48 @@ public class MatchLineupService {
 
     private static final String HOME = "home";
     private static final String AWAY = "away";
-    private static final String STARTER = "starter";
-    private static final String SUBSTITUTE = "substitute";
-
     private final MatchRepository matchRepository;
     private final LineupClient lineupClient;
     private final MatchLineupRepository matchLineupRepository;
     private final LineupPlayerRepository lineupPlayerRepository;
     private final LineupReferenceSyncService lineupReferenceSyncService;
+    private final LineupReferenceQueryService lineupReferenceQueryService;
+    private final MatchLineupPersistenceService matchLineupPersistenceService;
+    private final MatchLineupSyncStatusService matchLineupSyncStatusService;
 
-    @Transactional
+    /** 일반 조회는 저장된 라인업만 반환하며 외부 API 호출, 참조 동기화, DB 저장을 수행하지 않는다. */
     public MatchLineupResponse getLineup(Long matchId) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new ManuHubException(ErrorCode.NOT_FOUND_ERROR));
 
         List<MatchLineup> savedLineups = matchLineupRepository.findAllByMatchId(matchId);
-        if (hasHomeAndAway(savedLineups)) {
-            List<Long> lineupIds = savedLineups.stream()
-                    .map(MatchLineup::getId)
-                    .toList();
-            List<LineupPlayer> savedPlayers =
-                    lineupPlayerRepository.findAllByLineupIdInOrderByLineupIdAscDisplayOrderAsc(lineupIds);
-
-            match.completeLineupSync();
-            LineupReferenceData references = lineupReferenceSyncService.sync(savedLineups, savedPlayers);
-            return MatchLineupMapper.toResponseFromEntities(match, savedLineups, savedPlayers, references);
+        if (!hasHomeAndAway(savedLineups)) {
+            return new MatchLineupResponse(
+                    matchId,
+                    MatchLineupResponse.LineupStatus.NOT_AVAILABLE,
+                    null,
+                    null
+            );
         }
 
-        List<LineupApiResponse.Response> lineups = lineupClient.getLineups(matchId);
-        LineupReferenceData references = lineupReferenceSyncService.syncApiReferences(lineups);
-        MatchLineupResponse apiResponse = MatchLineupMapper.toResponse(match, lineups, references);
-        LineupApiResponse.Response home = findTeamLineup(lineups, match.getHomeTeamId());
-        LineupApiResponse.Response away = findTeamLineup(lineups, match.getAwayTeamId());
-
-        if (home == null || away == null) {
-            return apiResponse;
-        }
-
-        removeIncompleteLineups(savedLineups);
-        List<MatchLineup> persistedLineups = List.of(
-                saveLineup(matchId, HOME, home),
-                saveLineup(matchId, AWAY, away)
-        );
-        List<LineupPlayer> persistedPlayers = new ArrayList<>();
-        persistedPlayers.addAll(savePlayers(persistedLineups.get(0).getId(), home));
-        persistedPlayers.addAll(savePlayers(persistedLineups.get(1).getId(), away));
-
-        match.completeLineupSync();
-        references = lineupReferenceSyncService.sync(persistedLineups, persistedPlayers);
-        return MatchLineupMapper.toResponseFromEntities(match, persistedLineups, persistedPlayers, references);
+        List<Long> lineupIds = savedLineups.stream()
+                .map(MatchLineup::getId)
+                .toList();
+        List<LineupPlayer> savedPlayers =
+                lineupPlayerRepository.findAllByLineupIdInOrderByLineupIdAscDisplayOrderAsc(lineupIds);
+        LineupReferenceData references = lineupReferenceQueryService.load(savedLineups);
+        return MatchLineupMapper.toResponseFromEntities(match, savedLineups, savedPlayers, references);
     }
 
-    @Transactional
-    public void backfillLineup(Long matchId) {
+    /** 백필 성공 여부를 반환해 스케줄러가 실패 횟수와 다음 재시도 시각을 기록할 수 있게 한다. */
+    public boolean backfillLineup(Long matchId) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new ManuHubException(ErrorCode.NOT_FOUND_ERROR));
 
         List<MatchLineup> savedLineups = matchLineupRepository.findAllByMatchId(matchId);
         if (hasHomeAndAway(savedLineups)) {
-            match.completeLineupSync();
-            return;
+            matchLineupSyncStatusService.markCompleted(matchId);
+            return true;
         }
 
         List<LineupApiResponse.Response> lineups = lineupClient.getLineups(matchId);
@@ -88,16 +68,11 @@ public class MatchLineupService {
         LineupApiResponse.Response away = findTeamLineup(lineups, match.getAwayTeamId());
 
         if (home == null || away == null) {
-            match.failLineupSync();
-            return;
+            return false;
         }
 
-        removeIncompleteLineups(savedLineups);
-        MatchLineup homeLineup = saveLineup(matchId, HOME, home);
-        MatchLineup awayLineup = saveLineup(matchId, AWAY, away);
-        savePlayers(homeLineup.getId(), home);
-        savePlayers(awayLineup.getId(), away);
-        match.completeLineupSync();
+        matchLineupPersistenceService.replaceLineups(matchId, home, away);
+        return true;
     }
 
     private boolean hasHomeAndAway(List<MatchLineup> lineups) {
@@ -116,66 +91,4 @@ public class MatchLineupService {
                 .orElse(null);
     }
 
-    private void removeIncompleteLineups(List<MatchLineup> lineups) {
-        if (lineups.isEmpty()) {
-            return;
-        }
-
-        List<Long> lineupIds = lineups.stream()
-                .map(MatchLineup::getId)
-                .toList();
-        lineupPlayerRepository.deleteAllByLineupIdIn(lineupIds);
-        matchLineupRepository.deleteAll(lineups);
-    }
-
-    private MatchLineup saveLineup(
-            Long matchId,
-            String teamType,
-            LineupApiResponse.Response response
-    ) {
-        LineupApiResponse.Coach coach = response.coach();
-        MatchLineup lineup = MatchLineup.create(
-                matchId,
-                teamType,
-                response.team().id(),
-                response.formation(),
-                coach == null ? null : coach.id()
-        );
-        return matchLineupRepository.save(lineup);
-    }
-
-    private List<LineupPlayer> savePlayers(
-            Long lineupId,
-            LineupApiResponse.Response response
-    ) {
-        List<LineupPlayer> players = new ArrayList<>();
-        addPlayers(players, lineupId, response.startPlayers(), STARTER);
-        addPlayers(players, lineupId, response.substitutes(), SUBSTITUTE);
-        return lineupPlayerRepository.saveAll(players);
-    }
-
-    private void addPlayers(
-            List<LineupPlayer> target,
-            Long lineupId,
-            List<LineupApiResponse.LineupPlayer> source,
-            String playerType
-    ) {
-        if (source == null) {
-            return;
-        }
-
-        for (int index = 0; index < source.size(); index++) {
-            LineupApiResponse.Player player = source.get(index).player();
-            target.add(LineupPlayer.create(
-                    lineupId,
-                    player.id(),
-                    player.name(),
-                    player.number(),
-                    player.pos(),
-                    player.grid(),
-                    playerType,
-                    index
-            ));
-        }
-    }
 }

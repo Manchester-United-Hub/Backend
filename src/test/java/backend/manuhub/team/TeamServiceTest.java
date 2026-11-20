@@ -2,6 +2,8 @@ package backend.manuhub.team;
 
 import backend.manuhub.external.team.TeamApiResponse;
 import backend.manuhub.external.team.TeamClient;
+import backend.manuhub.external.lineup.LineupApiResponse;
+import backend.manuhub.image.ImageService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,11 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.ArgumentMatchers.anyString;
 
 @DisplayName("TeamService 테스트")
 @ActiveProfiles("test")
@@ -28,6 +33,9 @@ public class TeamServiceTest {
 
     @MockitoBean
     private TeamClient teamClient;
+
+    @MockitoBean
+    private ImageService imageService;
 
     @AfterEach
     void clear() {
@@ -44,6 +52,8 @@ public class TeamServiceTest {
     @DisplayName("팀을 생성한다")
     void createTeam() {
         given(teamClient.fetchTeam(33L)).willReturn(mockTeamResponse(33L, "Manchester United", "https://logo.png", "Manchester", "England", "Old Trafford", 1878));
+        given(imageService.uploadFromUrl("https://logo.png", "teams/33.png"))
+                .willReturn("https://r2.test/teams/33.png");
 
         Team team = teamService.createTeam(33L);
 
@@ -53,6 +63,30 @@ public class TeamServiceTest {
         assertThat(team.getCity()).isEqualTo("Manchester");
         assertThat(team.getCountry()).isEqualTo("England");
         assertThat(team.getFounded()).isEqualTo(1878);
+        assertThat(team.getLogoUrl()).isEqualTo("https://r2.test/teams/33.png");
+    }
+
+    @Test
+    @DisplayName("라인업 팀 로고 업로드는 DB 트랜잭션 밖에서 실행하고 결과를 저장한다")
+    void syncLineupTeamUploadsOutsideTransaction() {
+        teamRepository.save(Team.create(
+                33L, "Manchester United", "https://source.test/old.png",
+                null, null, null, null
+        ));
+        AtomicBoolean transactionActiveDuringUpload = new AtomicBoolean(true);
+        given(imageService.uploadFromUrl(anyString(), anyString())).willAnswer(invocation -> {
+            transactionActiveDuringUpload.set(TransactionSynchronizationManager.isActualTransactionActive());
+            return "https://test/teams/33.png";
+        });
+
+        Team result = teamService.syncLineupTeam(
+                new LineupApiResponse.Team(33L, "Manchester United", "https://source.test/new.png")
+        );
+
+        assertThat(transactionActiveDuringUpload).isFalse();
+        assertThat(result.getLogoUrl()).isEqualTo("https://test/teams/33.png");
+        assertThat(teamRepository.findById(33L).orElseThrow().getLogoUrl())
+                .isEqualTo("https://test/teams/33.png");
     }
 
     @Test

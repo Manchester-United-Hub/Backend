@@ -24,6 +24,10 @@ logging:
     org.hibernate.orm.jdbc.bind: trace
 
 external:
+  http:
+    connect-timeout: ${EXTERNAL_HTTP_CONNECT_TIMEOUT:5s}
+    read-timeout: ${EXTERNAL_HTTP_READ_TIMEOUT:30s}
+
   naver:
     client-id: ${NAVER_CLIENT_ID}
     client-secret: ${NAVER_CLIENT_SECRET}

@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 @Service
-@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class TeamService {
 
@@ -24,17 +23,17 @@ public class TeamService {
     private final TeamClient teamClient;
     private final ImageService imageService;
 
-    @Transactional
+    // 외부 API와 R2 업로드가 DB 트랜잭션을 오래 점유하지 않도록 저장 호출만 Repository 트랜잭션으로 실행한다.
     public Team createTeam(Long teamId) {
         TeamResponse response = fetchTeamByTeamId(teamId);
         return saveTeam(response);
     }
 
+    @Transactional(readOnly = true)
     public Optional<Team> getTeamById(Long teamId) {
         return teamRepository.findById(teamId);
     }
 
-    @Transactional
     public Team syncLineupTeam(LineupApiResponse.Team lineupTeam) {
         return teamRepository.findById(lineupTeam.id())
                 .map(team -> updateLineupLogo(team, lineupTeam.logo()))
@@ -66,6 +65,6 @@ public class TeamService {
 
         String r2LogoUrl = imageService.uploadFromUrl(sourceLogoUrl, "teams/" + team.getId() + ".png");
         team.updateLogoUrl(r2LogoUrl);
-        return team;
+        return teamRepository.save(team);
     }
 }

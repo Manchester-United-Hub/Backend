@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.Set;
 
 @Entity
@@ -88,6 +89,14 @@ public class Match {
             columnDefinition = "varchar(20) default 'pending'")
     private String lineupSyncStatus = "pending";
 
+    // 서버 재시작 후에도 백필 재시도 상태를 유지하기 위해 횟수와 다음 시각을 DB에 저장한다.
+    @Column(name = "lineup_sync_attempts", nullable = false,
+            columnDefinition = "int default 0")
+    private int lineupSyncAttempts = 0;
+
+    @Column(name = "lineup_sync_next_retry_at")
+    private LocalDateTime lineupSyncNextRetryAt;
+
     public static Match create(Long matchId, LocalDateTime date, String status, String round,
                                String venueName, String venueCity,
                                Long homeTeamId, String homeTeamName, String homeTeamLogo, Boolean homeTeamWinner,
@@ -157,10 +166,23 @@ public class Match {
 
     public void completeLineupSync() {
         this.lineupSyncStatus = "completed";
+        this.lineupSyncNextRetryAt = null;
     }
 
-    public void failLineupSync() {
-        this.lineupSyncStatus = "failed";
+    /** 첫 실패는 10분, 두 번째 실패는 1시간 뒤 재시도하고 최대 횟수 도달 시 영구 실패 처리한다. */
+    public void recordLineupSyncFailure(LocalDateTime failedAt, int maxAttempts) {
+        this.lineupSyncAttempts++;
+        if (this.lineupSyncAttempts >= maxAttempts) {
+            this.lineupSyncStatus = "failed";
+            this.lineupSyncNextRetryAt = null;
+            return;
+        }
+
+        this.lineupSyncStatus = "pending";
+        Duration retryDelay = this.lineupSyncAttempts == 1
+                ? Duration.ofMinutes(10)
+                : Duration.ofHours(1);
+        this.lineupSyncNextRetryAt = failedAt.plus(retryDelay);
     }
 
     public boolean isFinished() {

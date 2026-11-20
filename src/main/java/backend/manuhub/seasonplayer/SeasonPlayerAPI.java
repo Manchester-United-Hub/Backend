@@ -57,7 +57,7 @@ public interface SeasonPlayerAPI {
             @Parameter(description = "시즌 시작 연도", required = false,
                     schema = @Schema(type = "integer", example = "2025"))
             @RequestParam(required = false) Integer season,
-            @Parameter(description = "포지션", required = false,
+            @Parameter(description = "포지션 (season이 없으면 활동 시즌 중 해당 포지션 이력이 있는 선수 검색)", required = false,
                     schema = @Schema(type = "string", example = "Midfielder"))
             @RequestParam(required = false) String position,
             @Parameter(description = "선수 이름 (부분 검색)", required = false,

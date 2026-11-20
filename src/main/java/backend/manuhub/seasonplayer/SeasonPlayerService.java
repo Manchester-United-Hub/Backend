@@ -27,20 +27,15 @@ public class SeasonPlayerService {
     private final SeasonPlayerRepository seasonPlayerRepository;
     private final PlayerRepository playerRepository;
 
-//    @Transactional(readOnly = true)
-//    public SeasonPlayerListResponse getSeasonPlayers(Integer season, int page, int size) {
-//        PageRequest pageRequest = PageRequest.of(page, size);
-//        if (season == null) {
-//            Page<Player> playerPage = playerRepository.findAllByOrderByNameAscPlayerIdAsc(pageRequest);
-//            return SeasonPlayerListResponse.of(toResponses(playerPage.getContent()), playerPage);
-//        }
-//
-//        Page<SeasonPlayer> seasonPlayerPage = seasonPlayerRepository.findAllBySeasonWithPlayer(season, pageRequest);
-//        return SeasonPlayerListResponse.of(toSeasonResponses(seasonPlayerPage.getContent()), seasonPlayerPage);
-//    }
     @Transactional(readOnly = true)
     public SeasonPlayerListResponse getSeasonPlayers(Integer season, String position, String name, int page, int size) {
         PageRequest pageRequest = PageRequest.of(page, size);
+        if (season == null) {
+            // 시즌이 없으면 Player를 기준으로 페이징하고, 포지션은 활동 시즌 중 일치 이력의 존재 여부로 필터링한다.
+            Page<Player> playerPage = playerRepository.searchPlayers(position, name, pageRequest);
+            return SeasonPlayerListResponse.of(toResponses(playerPage.getContent(), position), playerPage);
+        }
+
         Page<SeasonPlayer> searchResult = seasonPlayerRepository.search(season, position, name, pageRequest);
         List<SeasonPlayerResponse> responses = toSeasonResponses(searchResult.getContent());
         return SeasonPlayerListResponse.of(responses, searchResult);
@@ -61,7 +56,7 @@ public class SeasonPlayerService {
         return SeasonPlayerResponse.from(seasonPlayer, toSeasons(findSeasonPlayers(playerId)));
     }
 
-    private List<SeasonPlayerResponse> toResponses(List<Player> players) {
+    private List<SeasonPlayerResponse> toResponses(List<Player> players, String position) {
         if (players.isEmpty()) {
             return List.of();
         }
@@ -79,10 +74,13 @@ public class SeasonPlayerService {
                     List<SeasonPlayer> seasonPlayers = seasonPlayersByPlayerId.getOrDefault(
                             player.getPlayerId(), List.of()
                     );
-                    SeasonPlayer latestSeasonPlayer = seasonPlayers.isEmpty() ? null : seasonPlayers.getLast();
+                    SeasonPlayer displaySeasonPlayer = seasonPlayers.stream()
+                            .filter(seasonPlayer -> position == null || position.equals(seasonPlayer.getPosition()))
+                            .reduce((previous, current) -> current)
+                            .orElse(null);
                     return SeasonPlayerResponse.from(
                             player,
-                            latestSeasonPlayer,
+                            displaySeasonPlayer,
                             toSeasons(seasonPlayers)
                     );
                 })

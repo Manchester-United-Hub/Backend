@@ -17,7 +17,8 @@ public interface MatchLineupAPI {
 
     @Operation(
             summary = "경기 라인업 조회 API",
-            description = "경기 ID로 양 팀의 포메이션, 선발 선수, 교체 선수를 조회합니다.",
+            description = "DB에 저장된 양 팀의 포메이션, 선발 선수, 교체 선수를 조회합니다. "
+                    + "저장된 라인업이 없으면 NOT_AVAILABLE을 반환하며 조회 과정에서 외부 동기화를 수행하지 않습니다.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",

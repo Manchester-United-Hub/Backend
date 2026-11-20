@@ -65,18 +65,21 @@ class SeasonPlayerServiceTest {
     @DisplayName("position으로 필터링하면 해당 포지션 선수만 반환한다")
     void getsPlayersByPosition() {
         Player player = player(1485L, "Bruno Fernandes");
-        SeasonPlayer seasonPlayer = seasonPlayer(player, 2025, 8);
+        SeasonPlayer midfielderSeason = seasonPlayer(player, 2025, 8, "Midfielder");
+        SeasonPlayer attackerSeason = seasonPlayer(player, 2026, 10, "Attacker");
         PageRequest pageRequest = PageRequest.of(0, 20);
-        when(seasonPlayerRepository.search(null, "Midfielder", null, pageRequest))
-                .thenReturn(new PageImpl<>(List.of(seasonPlayer), pageRequest, 1));
+        when(playerRepository.searchPlayers("Midfielder", null, pageRequest))
+                .thenReturn(new PageImpl<>(List.of(player), pageRequest, 1));
         when(seasonPlayerRepository.findAllByPlayerIdInOrderByPlayerIdAscSeasonAsc(List.of(1485L)))
-                .thenReturn(List.of(seasonPlayer));
+                .thenReturn(List.of(midfielderSeason, attackerSeason));
 
         SeasonPlayerListResponse result = seasonPlayerService.getSeasonPlayers(null, "Midfielder", null, 0, 20);
 
         assertEquals(1, result.players().size());
         assertEquals("Midfielder", result.players().getFirst().position());
-        verify(seasonPlayerRepository).search(null, "Midfielder", null, pageRequest);
+        assertEquals(8, result.players().getFirst().number());
+        assertEquals(List.of(2025, 2026), result.players().getFirst().seasons());
+        verify(playerRepository).searchPlayers("Midfielder", null, pageRequest);
     }
 
     @Test
@@ -85,8 +88,8 @@ class SeasonPlayerServiceTest {
         Player player = player(1485L, "Bruno Fernandes");
         SeasonPlayer seasonPlayer = seasonPlayer(player, 2025, 8);
         PageRequest pageRequest = PageRequest.of(0, 20);
-        when(seasonPlayerRepository.search(null, null, "Bruno", pageRequest))
-                .thenReturn(new PageImpl<>(List.of(seasonPlayer), pageRequest, 1));
+        when(playerRepository.searchPlayers(null, "Bruno", pageRequest))
+                .thenReturn(new PageImpl<>(List.of(player), pageRequest, 1));
         when(seasonPlayerRepository.findAllByPlayerIdInOrderByPlayerIdAscSeasonAsc(List.of(1485L)))
                 .thenReturn(List.of(seasonPlayer));
 
@@ -94,7 +97,7 @@ class SeasonPlayerServiceTest {
 
         assertEquals(1, result.players().size());
         assertEquals("Bruno Fernandes", result.players().getFirst().name());
-        verify(seasonPlayerRepository).search(null, null, "Bruno", pageRequest);
+        verify(playerRepository).searchPlayers(null, "Bruno", pageRequest);
     }
 
     @Test
@@ -107,8 +110,8 @@ class SeasonPlayerServiceTest {
         SeasonPlayer brunoSp2025 = seasonPlayer(bruno, 2025, 8);
         SeasonPlayer mountSp2025 = seasonPlayer(mount, 2025, 7);
 
-        when(seasonPlayerRepository.search(null, null, null, pageRequest))
-                .thenReturn(new PageImpl<>(List.of(brunoSp2025, mountSp2025), pageRequest, 2));
+        when(playerRepository.searchPlayers(null, null, pageRequest))
+                .thenReturn(new PageImpl<>(List.of(bruno, mount), pageRequest, 2));
         when(seasonPlayerRepository.findAllByPlayerIdInOrderByPlayerIdAscSeasonAsc(List.of(1485L, 152982L)))
                 .thenReturn(List.of(brunoSp2024, brunoSp2025, mountSp2025));
 
@@ -125,7 +128,7 @@ class SeasonPlayerServiceTest {
     @DisplayName("조회된 페이지가 비어 있으면 활동 시즌을 추가 조회하지 않는다")
     void doesNotLoadPlayedSeasonsForEmptyPage() {
         PageRequest pageRequest = PageRequest.of(3, 20);
-        when(seasonPlayerRepository.search(null, null, null, pageRequest))
+        when(playerRepository.searchPlayers(null, null, pageRequest))
                 .thenReturn(new PageImpl<>(List.of(), pageRequest, 10));
 
         SeasonPlayerListResponse result = seasonPlayerService.getSeasonPlayers(null, null, null, 3, 20);
@@ -191,12 +194,16 @@ class SeasonPlayerServiceTest {
     }
 
     private SeasonPlayer seasonPlayer(Player player, Integer season, Integer number) {
+        return seasonPlayer(player, season, number, "Midfielder");
+    }
+
+    private SeasonPlayer seasonPlayer(Player player, Integer season, Integer number, String position) {
         return SeasonPlayer.builder()
                 .playerId(player.getPlayerId())
                 .season(season)
                 .player(player)
                 .number(number)
-                .position("Midfielder")
+                .position(position)
                 .build();
     }
 }

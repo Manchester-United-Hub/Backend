@@ -4,28 +4,42 @@ on:
   push:
     branches:
       - main
+      - develop
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+
+permissions:
+  contents: read
+
+# 운영 서버에 두 배포가 동시에 실행되어 컨테이너 상태가 섞이지 않도록 직렬화한다.
+concurrency:
+  group: backend-production-deploy
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source code
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.IMAGE_TAG }}
 
-      - name: Set up JDK 21
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: "21"
 
-      - name: Setup Gradle
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Grant execute permission for Gradle Wrapper
-        run: chmod +x ./gradlew
+        run: chmod +x gradlew
 
-      - name: Build with Gradle
+      - name: Build and test
         run: ./gradlew build
 
   docker-build-push:
@@ -33,32 +47,69 @@ jobs:
     needs: build
 
     steps:
-      - name: Checkout source code
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.IMAGE_TAG }}
 
-      - name: Login to Docker Hub
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # latest는 편의용으로 유지하고, 실제 배포에는 불변인 커밋 SHA 태그를 사용한다.
       - name: Build and push Docker image
-        run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/manuhub-backend:latest .
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/manuhub-backend:latest
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/manuhub-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/manuhub-backend:${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - manuhub-prod
     needs: docker-build-push
+    environment: production
 
     steps:
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          script: |
-            cd /home/ubuntu/manuhub
-            docker compose -f docker-compose-prod.yml pull app
-            docker compose -f docker-compose-prod.yml up -d app
+          ref: ${{ env.IMAGE_TAG }}
+
+      # EC2 안에서 실행되는 Runner가 운영 경로의 Compose 파일을 직접 갱신한다.
+      - name: Update production Compose file
+        run: cp docker-compose-prod.yml /home/ubuntu/manuhub/docker-compose-prod.yml
+
+      - name: Pull image and restart application locally
+        env:
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -eu
+          cd /home/ubuntu/manuhub
+
+          printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+
+          # 방금 빌드한 커밋의 이미지만 지정하여 latest 태그 변경에 따른 배포 경합을 피한다.
+          export BACKEND_IMAGE="$DOCKERHUB_USERNAME/manuhub-backend:$IMAGE_TAG"
+          docker compose -f docker-compose-prod.yml pull app
+          docker compose -f docker-compose-prod.yml up -d --no-deps app
+
+          sleep 10
+          if [ "$(docker inspect --format '{{.State.Running}}' manu-app 2>/dev/null || true)" != "true" ]; then
+            docker logs --tail 100 manu-app || true
+            exit 1
+          fi
+
+          docker compose -f docker-compose-prod.yml ps app
