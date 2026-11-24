@@ -1,6 +1,8 @@
 package backend.manuhub.matchevent;
 
 import backend.manuhub.match.Match;
+import backend.manuhub.match.MatchRepository;
+import backend.manuhub.lineup.MatchLineupRefreshEvent;
 import backend.manuhub.matchevent.dto.MatchEventResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,6 +14,7 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 
@@ -29,6 +32,8 @@ public class MatchEventUpdateServiceTest {
     private static final Long MATCH_ID = 1557450L;
 
     @Mock private MatchEventRepository repository;
+    @Mock private MatchRepository matchRepository;
+    @Mock private ApplicationEventPublisher eventPublisher;
     @InjectMocks private MatchEventUpdateService updateService;
 
     @Captor private ArgumentCaptor<List<MatchEvent>> entitiesCaptor;
@@ -51,6 +56,7 @@ public class MatchEventUpdateServiceTest {
 
         verify(repository, never()).deleteAllByMatchId(any());
         verify(repository, never()).saveAll(any());
+        verify(eventPublisher, never()).publishEvent(any(MatchLineupRefreshEvent.class));
     }
 
     @Test
@@ -63,6 +69,7 @@ public class MatchEventUpdateServiceTest {
         verify(repository).saveAll(entitiesCaptor.capture());
         assertThat(entitiesCaptor.getValue()).hasSize(1);
         assertThat(entitiesCaptor.getValue().get(0).getElapsedMinute()).isEqualTo(34);
+        verify(eventPublisher).publishEvent(new MatchLineupRefreshEvent(MATCH_ID));
     }
 
     @Test
