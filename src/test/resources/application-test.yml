@@ -1,3 +1,8 @@
+# 테스트에서 예약 작업이 실제 API 호출이나 테스트 데이터 변경을 일으키지 않도록 한다.
+app:
+  scheduling:
+    enabled: false
+
 spring:
   datasource:
     url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;
