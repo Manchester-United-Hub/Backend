@@ -6,6 +6,7 @@ import backend.manuhub.external.lineup.LineupApiResponse;
 import backend.manuhub.match.Match;
 import backend.manuhub.match.MatchRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ public class MatchLineupPersistenceService {
     private final MatchRepository matchRepository;
     private final MatchLineupRepository matchLineupRepository;
     private final LineupPlayerRepository lineupPlayerRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 외부 API와 R2 작업이 끝난 결과만 받아 라인업, 선수, 동기화 상태를 하나의 짧은
@@ -55,6 +57,9 @@ public class MatchLineupPersistenceService {
         persistedPlayers.addAll(savePlayers(persistedLineups.get(0).getId(), home));
         persistedPlayers.addAll(savePlayers(persistedLineups.get(1).getId(), away));
         match.completeLineupSync();
+
+        // 이벤트가 없는 경기에서도 뒤늦게 공개된 라인업이 접속 중인 사용자에게 전달되도록 알린다.
+        eventPublisher.publishEvent(new MatchLineupRefreshEvent(matchId));
 
         return new PersistedLineupData(match, persistedLineups, persistedPlayers);
     }
