@@ -1,6 +1,7 @@
 package backend.manuhub.match;
 
 import backend.manuhub.common.util.SeasonProvider;
+import backend.manuhub.matchevent.MatchEventService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,8 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class MatchSchedulerTest {
@@ -37,12 +40,16 @@ class MatchSchedulerTest {
     @Mock
     private SeasonProvider seasonProvider;
 
+    @Mock
+    private MatchEventService matchEventService;
+
     private MatchScheduler matchScheduler;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(NOW.atZone(KOREA_ZONE).toInstant(), KOREA_ZONE);
-        matchScheduler = new MatchScheduler(matchRepository, matchInitializeService, seasonProvider, clock);
+        matchScheduler = new MatchScheduler(matchRepository, matchInitializeService, seasonProvider, clock,
+                matchEventService);
     }
 
     @Test
@@ -68,6 +75,8 @@ class MatchSchedulerTest {
 
         verify(matchInitializeService).updateMatch(100L);
         verify(matchInitializeService).updateMatch(101L);
+        verify(matchEventService).syncMatchEvents(100L);
+        verify(matchEventService).syncMatchEvents(101L);
         verify(matchInitializeService, never()).saveMatches(39L, 2026, 33L);
     }
 
@@ -82,6 +91,37 @@ class MatchSchedulerTest {
 
         verify(matchInitializeService, never()).updateMatch(anyLong());
         verify(seasonProvider, never()).getCurrentSeason();
+    }
+
+    @Test
+    @DisplayName("경기 상태 갱신 실패가 다른 경기와 이벤트 재수집을 중단시키지 않는다")
+    void isolatesRefreshFailureAndRetriesFinishedEvents() {
+        Match live = match(100L, NOW.minusHours(1), "2H");
+        Match finished = match(101L, NOW.minusHours(2), "FT");
+        when(matchRepository.findAllToUpdateBeforeAndDuringMatch(
+                "NS", NOW.minusDays(1), NOW.plusMinutes(10), ACTIVE_STATUSES)).thenReturn(List.of(live));
+        when(matchRepository.findFinishedEventSyncTargets(Set.of("FT", "AET", "PEN"), NOW.minusDays(1)))
+                .thenReturn(List.of(finished));
+        doThrow(new IllegalStateException("API failure")).when(matchInitializeService).updateMatch(100L);
+        doThrow(new IllegalStateException("Event failure")).when(matchEventService).syncMatchEvents(100L);
+
+        matchScheduler.updateMatchesDuringMatchWindow();
+
+        verify(matchEventService).syncMatchEvents(101L);
+    }
+
+    @Test
+    @DisplayName("한 주기에 상태 갱신과 종료 재수집 대상이 겹쳐도 이벤트 API는 한 번만 실행한다")
+    void deduplicatesEventSyncTargetsWithinTick() {
+        Match match = match(100L, NOW.minusHours(1), "2H");
+        when(matchRepository.findAllToUpdateBeforeAndDuringMatch(
+                "NS", NOW.minusDays(1), NOW.plusMinutes(10), ACTIVE_STATUSES)).thenReturn(List.of(match));
+        when(matchRepository.findFinishedEventSyncTargets(Set.of("FT", "AET", "PEN"), NOW.minusDays(1)))
+                .thenReturn(List.of(match));
+
+        matchScheduler.updateMatchesDuringMatchWindow();
+
+        verify(matchEventService, times(1)).syncMatchEvents(100L);
     }
 
     private Match match(Long matchId, LocalDateTime date, String status) {
