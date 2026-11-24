@@ -8,6 +8,7 @@ import backend.manuhub.teamstatistics.TeamStatisticsInitializeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,8 @@ import java.util.function.Consumer;
 @Component
 @RequiredArgsConstructor
 @Profile("!test")
+// 운영 DB를 연결한 로컬 앱이 시작 시 데이터를 다시 수집하지 않도록 제어한다.
+@ConditionalOnProperty(name = "app.initialization.enabled", havingValue = "true", matchIfMissing = true)
 @Slf4j
 public class StartupInitializerRunner implements CommandLineRunner {
 
