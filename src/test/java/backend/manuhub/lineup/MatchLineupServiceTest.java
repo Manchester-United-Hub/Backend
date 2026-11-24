@@ -24,6 +24,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -100,9 +103,14 @@ class MatchLineupServiceTest {
     @DisplayName("배치 백필은 팀과 코치 참조를 동기화하고 라인업을 저장한다")
     void backfillsLineupWithoutReferenceSync() {
         matchRepository.save(createMatch());
-        given(lineupClient.getLineups(MATCH_ID)).willReturn(createLineups());
+        given(lineupClient.getLineups(MATCH_ID)).willAnswer(invocation -> {
+            // 느린 외부 호출 중 DB 트랜잭션을 유지하지 않는지 검증한다.
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            return createLineups();
+        });
         given(lineupReferenceSyncService.syncApiReferences(anyList())).willReturn(createReferences());
 
+        matchLineupService.backfillLineup(MATCH_ID);
         matchLineupService.backfillLineup(MATCH_ID);
 
         assertThat(matchLineupRepository.findAllByMatchId(MATCH_ID)).hasSize(2);
@@ -110,6 +118,39 @@ class MatchLineupServiceTest {
         assertThat(matchRepository.findById(MATCH_ID).orElseThrow().getLineupSyncStatus())
                 .isEqualTo("completed");
         then(lineupReferenceSyncService).should().syncApiReferences(anyList());
+        then(lineupClient).should(times(1)).getLineups(MATCH_ID);
+    }
+
+    @Test
+    @DisplayName("외부 참조 동기화가 실패하면 라인업과 수집 완료 상태를 저장하지 않는다")
+    void referenceSyncFailureLeavesLineupRetryable() {
+        matchRepository.save(createMatch());
+        given(lineupClient.getLineups(MATCH_ID)).willReturn(createLineups());
+        given(lineupReferenceSyncService.syncApiReferences(anyList()))
+                .willThrow(new IllegalStateException("Image failure"));
+
+        assertThatThrownBy(() -> matchLineupService.backfillLineup(MATCH_ID))
+                .isInstanceOf(IllegalStateException.class).hasMessage("Image failure");
+
+        assertThat(matchLineupRepository.findAllByMatchId(MATCH_ID)).isEmpty();
+        assertThat(lineupPlayerRepository.findAll()).isEmpty();
+        assertThat(matchRepository.findById(MATCH_ID).orElseThrow().getLineupSyncStatus())
+                .isEqualTo("pending");
+    }
+
+    @Test
+    @DisplayName("저장된 홈·원정 라인업이 있으면 외부 API 호출 없이 동기화를 완료한다")
+    void completesBackfillWithoutExternalCallWhenLineupExists() {
+        matchRepository.save(createMatch());
+        saveLineups();
+
+        boolean completed = matchLineupService.backfillLineup(MATCH_ID);
+
+        assertThat(completed).isTrue();
+        assertThat(matchRepository.findById(MATCH_ID).orElseThrow().getLineupSyncStatus())
+                .isEqualTo("completed");
+        then(lineupClient).shouldHaveNoInteractions();
+        then(lineupReferenceSyncService).shouldHaveNoInteractions();
     }
 
     @Test
@@ -117,8 +158,6 @@ class MatchLineupServiceTest {
     void returnsIncompleteWhenBackfillLineupIsUnavailable() {
         matchRepository.save(createMatch());
         given(lineupClient.getLineups(MATCH_ID)).willReturn(List.of());
-        given(lineupReferenceSyncService.syncApiReferences(anyList())).willReturn(
-                new LineupReferenceData(Map.of(), Map.of()));
 
         boolean completed = matchLineupService.backfillLineup(MATCH_ID);
 
@@ -127,7 +166,7 @@ class MatchLineupServiceTest {
         assertThat(lineupPlayerRepository.findAll()).isEmpty();
         assertThat(matchRepository.findById(MATCH_ID).orElseThrow().getLineupSyncStatus())
                 .isEqualTo("pending");
-        then(lineupReferenceSyncService).should().syncApiReferences(anyList());
+        then(lineupReferenceSyncService).shouldHaveNoInteractions();
     }
 
     private Match createMatch() {
