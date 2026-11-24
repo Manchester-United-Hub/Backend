@@ -85,6 +85,11 @@ public class Match {
     @Column(name = "away_score")
     private Integer awayScore;
 
+    // 경기 상태가 먼저 종료로 바뀌어도 마지막 이벤트 수집 실패를 다음 주기에 재시도하기 위해 저장한다.
+    @Column(name = "event_sync_completed", nullable = false,
+            columnDefinition = "boolean default false")
+    private boolean eventSyncCompleted = false;
+
     @Column(name = "lineup_sync_status", nullable = false,
             columnDefinition = "varchar(20) default 'pending'")
     private String lineupSyncStatus = "pending";
@@ -187,5 +192,9 @@ public class Match {
 
     public boolean isFinished() {
         return status != null && FINISHED_STATUSES.contains(status);
+    }
+
+    public void completeEventSync() {
+        this.eventSyncCompleted = true;
     }
 }
