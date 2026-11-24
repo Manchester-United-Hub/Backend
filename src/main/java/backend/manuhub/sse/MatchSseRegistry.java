@@ -35,4 +35,15 @@ public class MatchSseRegistry {
         List<SseEmitter> list = emitters.get(matchId);
         return list == null ? 0 : list.size();
     }
+
+    public List<SseEmitter> getEmitters(Long matchId) {
+        // 전송 중 연결이 추가·해제되어도 순회할 대상 목록이 바뀌지 않도록 복사본을 반환한다.
+        List<SseEmitter> list = emitters.get(matchId);
+        return list == null ? List.of() : List.copyOf(list);
+    }
+
+    public List<Long> getSubscribedMatchIds() {
+        // 접속 중인 경기에만 heartbeat를 보내 불필요한 전체 경기 순회를 피한다.
+        return List.copyOf(emitters.keySet());
+    }
 }
