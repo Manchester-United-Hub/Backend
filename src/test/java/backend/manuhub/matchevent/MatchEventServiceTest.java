@@ -121,8 +121,9 @@ public class MatchEventServiceTest {
 
         assertThat(response.matchId()).isEqualTo(MATCH_ID);
         assertThat(response.events()).isEmpty();
-        verify(matchEventUpdateService, never()).updateMatchEvents(any(), any());
-        verify(matchEventRepository, times(1))
+        // 빈 응답도 성공한 수집으로 기록해야 다음 조회에서 API를 다시 호출하지 않는다.
+        verify(matchEventUpdateService).updateMatchEvents(match, List.of());
+        verify(matchEventRepository, times(2))
                 .findAllByMatch_MatchIdOrderByElapsedMinuteAscExtraMinuteAscIdAsc(MATCH_ID);
     }
 
@@ -151,7 +152,57 @@ public class MatchEventServiceTest {
         MatchEventListGetResponse response = matchEventService.getMatchEvents(MATCH_ID);
 
         assertThat(response.events()).isEmpty();
+        verify(matchEventUpdateService).updateMatchEvents(match, List.of());
+    }
+
+    @Test
+    @DisplayName("수집 완료된 무이벤트 경기는 반복 조회와 주기 동기화에서 외부 API를 호출하지 않는다")
+    void completedEmptyMatchSkipsExternalCalls() {
+        Match match = mock(Match.class);
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(match));
+        given(match.isFinished()).willReturn(true);
+        given(match.isEventSyncCompleted()).willReturn(true);
+
+        assertThat(matchEventService.getMatchEvents(MATCH_ID).events()).isEmpty();
+        assertThat(matchEventService.getMatchEvents(MATCH_ID).events()).isEmpty();
+        matchEventService.syncMatchEvents(MATCH_ID);
+
+        verify(matchEventClient, never()).fetchEvents(any());
         verify(matchEventUpdateService, never()).updateMatchEvents(any(), any());
+    }
+
+    @Test
+    @DisplayName("외부 이벤트 API가 실패하면 완료 상태를 저장하지 않고 다음 요청에서 다시 시도한다")
+    void retriesAfterExternalFailure() {
+        Match match = mock(Match.class);
+        stubEmptyStoredEvents(match);
+        given(matchEventClient.fetchEvents(MATCH_ID))
+                .willThrow(new RuntimeException("API failure"))
+                .willReturn(List.of());
+
+        assertThatThrownBy(() -> matchEventService.getMatchEvents(MATCH_ID))
+                .isInstanceOf(RuntimeException.class).hasMessage("API failure");
+        verify(matchEventUpdateService, never()).updateMatchEvents(any(), any());
+
+        matchEventService.getMatchEvents(MATCH_ID);
+
+        verify(matchEventClient, times(2)).fetchEvents(MATCH_ID);
+        verify(matchEventUpdateService).updateMatchEvents(match, List.of());
+    }
+
+    @Test
+    @DisplayName("진행 중 경기는 저장 이력이 있어도 최신 이벤트를 계속 수집한다")
+    void refreshesLiveMatchEvents() {
+        Match match = mock(Match.class);
+        given(matchRepository.findById(MATCH_ID)).willReturn(Optional.of(match));
+        given(match.getStatus()).willReturn("2H");
+        given(matchEventClient.fetchEvents(MATCH_ID)).willReturn(List.of(apiEvent("Goal", 73, null)));
+
+        matchEventService.syncMatchEvents(MATCH_ID);
+        matchEventService.syncMatchEvents(MATCH_ID);
+
+        verify(matchEventClient, times(2)).fetchEvents(MATCH_ID);
+        verify(matchEventUpdateService, times(2)).updateMatchEvents(eq(match), any());
     }
 
     @Test
