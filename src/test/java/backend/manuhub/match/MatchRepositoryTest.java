@@ -70,6 +70,43 @@ class MatchRepositoryTest {
                 .containsExactly(10L);
     }
 
+    @Test
+    @DisplayName("경기 전 라인업 조회는 NS 경기의 45분, 30분, 15분 전 1분 구간만 선택한다")
+    void findsPreMatchLineupSyncTargets() {
+        matchRepository.saveAll(List.of(
+                match(20L, NOW.plusMinutes(45).plusSeconds(30), "NS"),
+                match(21L, NOW.plusMinutes(30), "NS"),
+                match(22L, NOW.plusMinutes(15).plusSeconds(59), "NS"),
+                match(23L, NOW.plusMinutes(46), "NS"),
+                match(24L, NOW.plusMinutes(14).plusSeconds(59), "NS"),
+                match(25L, NOW.plusMinutes(30), "1H")
+        ));
+
+        List<Match> result = matchRepository.findPreMatchLineupSyncTargets(
+                "NS",
+                NOW.plusMinutes(45), NOW.plusMinutes(46),
+                NOW.plusMinutes(30), NOW.plusMinutes(31),
+                NOW.plusMinutes(15), NOW.plusMinutes(16)
+        );
+
+        assertThat(result)
+                .extracting(Match::getMatchId)
+                .containsExactly(22L, 21L, 20L);
+    }
+
+    @Test
+    @DisplayName("종료 이벤트 재수집은 최근 경기 중 수집 미완료인 경기만 선택한다")
+    void findsOnlyRecentUncompletedEventSyncTargets() {
+        Match pending = match(30L, NOW.minusHours(2), "FT");
+        Match completed = match(31L, NOW.minusHours(1), "FT");
+        completed.completeEventSync();
+        matchRepository.saveAll(List.of(pending, completed,
+                match(32L, NOW.minusDays(2), "FT"), match(33L, NOW.minusHours(1), "2H")));
+
+        assertThat(matchRepository.findFinishedEventSyncTargets(Set.of("FT", "AET", "PEN"), NOW.minusDays(1)))
+                .extracting(Match::getMatchId).containsExactly(30L);
+    }
+
     private Match match(Long matchId, LocalDateTime date, String status) {
         return Match.create(
                 matchId,
