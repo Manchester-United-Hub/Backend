@@ -1,5 +1,6 @@
 package backend.manuhub.matchevent.dto;
 
+import backend.manuhub.matchevent.MatchEvent;
 import backend.manuhub.matchevent.MatchEventType;
 
 public record MatchEventResponse(
@@ -22,5 +23,20 @@ public record MatchEventResponse(
                                             MatchEventType type, String detail, String comments) {
         return new MatchEventResponse(elapsedMinute, extraMinute, teamId, teamName,
                 playerId, playerName, assistPlayerId, assistPlayerName, type, detail, comments);
+    }
+    public static MatchEventResponse from(MatchEvent e) {
+        return new MatchEventResponse(
+                e.getElapsedMinute(),
+                e.getExtraMinute(),
+                e.getTeamId(),
+                e.getTeamName(),
+                e.getPlayerId(),
+                e.getPlayerName(),
+                e.getAssistPlayerId(),
+                e.getAssistPlayerName(),
+                e.getType(),
+                e.getDetail(),
+                e.getComments()
+        );
     }
 }
