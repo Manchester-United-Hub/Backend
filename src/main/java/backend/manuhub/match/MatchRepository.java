@@ -53,4 +53,19 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             @Param("matchStatuses") Collection<String> matchStatuses,
             Pageable pageable
     );
+
+    // 라이브 중계 이벤트 수집 대상: 수집 대상 status이면서 킥오프가 [kickoffFrom, kickoffTo] 구간에 있는 경기
+    @Query("""
+        select m
+        from Match m
+        where m.status in :statuses
+          and m.date >= :kickoffFrom
+          and m.date <= :kickoffTo
+        order by m.date asc
+        """)
+    List<Match> findLiveTargets(
+            @Param("statuses") Collection<String> statuses,
+            @Param("kickoffFrom") LocalDateTime kickoffFrom,
+            @Param("kickoffTo") LocalDateTime kickoffTo
+    );
 }
