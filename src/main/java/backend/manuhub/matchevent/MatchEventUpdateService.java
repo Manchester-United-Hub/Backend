@@ -1,6 +1,7 @@
 package backend.manuhub.matchevent;
 
 import backend.manuhub.match.Match;
+import backend.manuhub.matchevent.dto.MatchEventListGetResponse;
 import backend.manuhub.matchevent.dto.MatchEventResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,17 @@ public class MatchEventUpdateService {
         repository.saveAll(events.stream()
                 .map(r -> toEntity(match, r))
                 .toList());
+    }
+
+    public MatchEventListGetResponse updateLiveMatchEvents(List<MatchEventResponse> events, Match match) {
+        List<MatchEvent> matchEventList = events.stream()
+                .map(e -> toEntity(match, e))
+                .toList();
+
+        repository.deleteAllByMatchId(match.getMatchId());
+        List<MatchEvent> savedMatchEvents = repository.saveAll(matchEventList);
+
+        return MatchEventListGetResponse.of(match.getMatchId(), savedMatchEvents);
     }
 
     private MatchEvent toEntity(Match match, MatchEventResponse r) {
