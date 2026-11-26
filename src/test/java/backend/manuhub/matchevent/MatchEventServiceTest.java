@@ -230,6 +230,75 @@ public class MatchEventServiceTest {
         assertThat(saved.type()).isEqualTo(MatchEventType.SUBSTITUTION);
     }
 
+    @Test
+    @DisplayName("라이브 이벤트는 경과 분, 추가 시간 순으로 정렬해서 반환한다")
+    void getLiveMatchEvents_sorted() {
+        given(matchEventClient.fetchEvents(MATCH_ID)).willReturn(List.of(
+                apiEvent("Goal", 50, null),
+                apiEvent("Card", 45, 2),
+                apiEvent("Goal", 45, null)));
+
+        List<MatchEventResponse> result = matchEventService.getLiveMatchEvents(MATCH_ID);
+
+        assertThat(result).extracting(MatchEventResponse::elapsedMinute).containsExactly(45, 45, 50);
+        assertThat(result.get(0).extraMinute()).isNull();      // 45분(추가 시간 없음)이 45+2분보다 앞
+        assertThat(result.get(1).extraMinute()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("알 수 없는 타입은 제외하고 반환한다")
+    void getLiveMatchEvents_skipsUnknownType() {
+        given(matchEventClient.fetchEvents(MATCH_ID))
+                .willReturn(List.of(apiEvent("Unknown", 10, null), apiEvent("Goal", 34, null)));
+
+        assertThat(matchEventService.getLiveMatchEvents(MATCH_ID)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("isChanged: 저장된 이벤트와 같으면 false")
+    void isChanged_same() {
+        Match match = mock(Match.class);
+        MatchEvent stored = entity(match, MatchEventType.GOAL);
+        given(matchEventRepository.findAllByMatch_MatchIdOrderByElapsedMinuteAscExtraMinuteAscIdAsc(MATCH_ID))
+                .willReturn(List.of(stored));
+
+        assertThat(matchEventService.isChanged(List.of(MatchEventResponse.from(stored)), MATCH_ID)).isFalse();
+    }
+
+    @Test
+    @DisplayName("isChanged: 이벤트가 추가되면 true")
+    void isChanged_added() {
+        Match match = mock(Match.class);
+        MatchEvent goal = entity(match, MatchEventType.GOAL);
+        MatchEvent card = entity(match, MatchEventType.CARD);
+        given(matchEventRepository.findAllByMatch_MatchIdOrderByElapsedMinuteAscExtraMinuteAscIdAsc(MATCH_ID))
+                .willReturn(List.of(goal));
+
+        assertThat(matchEventService.isChanged(
+                List.of(MatchEventResponse.from(goal), MatchEventResponse.from(card)), MATCH_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("isChanged: 이벤트가 빠지면(VAR 취소 등) true")
+    void isChanged_removed() {
+        Match match = mock(Match.class);
+        MatchEvent goal = entity(match, MatchEventType.GOAL);
+        MatchEvent card = entity(match, MatchEventType.CARD);
+        given(matchEventRepository.findAllByMatch_MatchIdOrderByElapsedMinuteAscExtraMinuteAscIdAsc(MATCH_ID))
+                .willReturn(List.of(goal, card));
+
+        assertThat(matchEventService.isChanged(List.of(MatchEventResponse.from(goal)), MATCH_ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("isChanged: 빈 응답이면 DB를 조회하지 않고 false")
+    void isChanged_emptyResponse() {
+        assertThat(matchEventService.isChanged(List.of(), MATCH_ID)).isFalse();
+
+        verify(matchEventRepository, never())
+                .findAllByMatch_MatchIdOrderByElapsedMinuteAscExtraMinuteAscIdAsc(any());
+    }
+
     // 종료된 경기이고 저장된 이벤트가 없는 상황 (fallback으로 API를 조회하는 경우)
     private void stubEmptyStoredEvents(Match match) {
         given(match.isFinished()).willReturn(true);

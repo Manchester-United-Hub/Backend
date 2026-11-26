@@ -12,9 +12,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 @Slf4j
 @Service
@@ -25,7 +25,6 @@ public class MatchEventService {
     private final MatchEventRepository matchEventRepository;
     private final MatchEventClient matchEventClient;
     private final MatchRepository matchRepository;
-    private static final Set<String> FINISHED_STATUSES = Set.of("FT", "AET", "PEN");
 
     public MatchEventListGetResponse getMatchEvents(Long matchId) {
         Match match = matchRepository.findById(matchId)
@@ -42,6 +41,25 @@ public class MatchEventService {
         return MatchEventListGetResponse.of(matchId, events);
     }
 
+    public List<MatchEventResponse> getLiveMatchEvents(Long matchId) {
+        return fetchMatchEvents(matchId).stream()
+                .sorted(Comparator
+                        .comparing(MatchEventResponse::elapsedMinute)
+                        .thenComparing(e -> e.extraMinute() == null ? 0 : e.extraMinute()))
+                .toList();
+    }
+
+
+    public boolean isChanged(List<MatchEventResponse> liveMatchEvents, Long matchId) {
+        if (liveMatchEvents.isEmpty()) return false;
+
+        List<MatchEventResponse> existsEvents = matchEventRepository.findAllByMatch_MatchIdOrderByElapsedMinuteAscExtraMinuteAscIdAsc(matchId)
+                .stream()
+                .map(MatchEventResponse::from)
+                .toList();
+
+        return !liveMatchEvents.equals(existsEvents);
+    }
 
     private List<MatchEventResponse> fetchMatchEvents(Long matchId) {
         return matchEventClient.fetchEvents(matchId).stream()
@@ -49,6 +67,7 @@ public class MatchEventService {
                 .filter(Objects::nonNull)
                 .toList();
     }
+
     private MatchEventResponse toResponse(MatchEventApiResponse.Event e) {
         MatchEventType type = toMatchEventType(e.type());
         if (type == null) {

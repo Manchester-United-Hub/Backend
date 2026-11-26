@@ -1,6 +1,7 @@
 package backend.manuhub.matchevent;
 
 import backend.manuhub.match.Match;
+import backend.manuhub.matchevent.dto.MatchEventListGetResponse;
 import backend.manuhub.matchevent.dto.MatchEventResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -95,6 +96,22 @@ public class MatchEventUpdateServiceTest {
         assertThat(saved.getTeamId()).isEqualTo(33L);
         assertThat(saved.getPlayerName()).isEqualTo("Matheus Cunha");
         assertThat(saved.getDetail()).isEqualTo("detail");
+    }
+
+    @Test
+    @DisplayName("라이브 갱신: 기존 이벤트를 지우고 저장한 뒤, 저장된 전체 목록을 반환한다")
+    void updateLiveMatchEvents_replacesAndReturns() {
+        given(repository.saveAll(any())).willAnswer(inv -> inv.getArgument(0));   // 받은 엔티티를 그대로 반환
+
+        MatchEventListGetResponse result = updateService.updateLiveMatchEvents(
+                List.of(response(34, MatchEventType.GOAL), response(50, MatchEventType.CARD)), match);
+
+        InOrder inOrder = inOrder(repository);
+        inOrder.verify(repository).deleteAllByMatchId(MATCH_ID);     // 삭제가 먼저
+        inOrder.verify(repository).saveAll(entitiesCaptor.capture());
+        assertThat(entitiesCaptor.getValue()).hasSize(2);
+        assertThat(result.matchId()).isEqualTo(MATCH_ID);
+        assertThat(result.events()).hasSize(2);
     }
 
     private MatchEventResponse response(int elapsed, MatchEventType type) {
