@@ -24,6 +24,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -104,12 +105,15 @@ class MatchLineupServiceTest {
         given(lineupReferenceSyncService.syncApiReferences(anyList())).willReturn(createReferences());
 
         matchLineupService.backfillLineup(MATCH_ID);
+        // 이미 저장된 양 팀 라인업은 재조회하지 않는다.
+        matchLineupService.backfillLineup(MATCH_ID);
 
         assertThat(matchLineupRepository.findAllByMatchId(MATCH_ID)).hasSize(2);
         assertThat(lineupPlayerRepository.findAll()).hasSize(4);
         assertThat(matchRepository.findById(MATCH_ID).orElseThrow().getLineupSyncStatus())
                 .isEqualTo("completed");
         then(lineupReferenceSyncService).should().syncApiReferences(anyList());
+        then(lineupClient).should(times(1)).getLineups(MATCH_ID);
     }
 
     @Test
@@ -117,8 +121,6 @@ class MatchLineupServiceTest {
     void returnsIncompleteWhenBackfillLineupIsUnavailable() {
         matchRepository.save(createMatch());
         given(lineupClient.getLineups(MATCH_ID)).willReturn(List.of());
-        given(lineupReferenceSyncService.syncApiReferences(anyList())).willReturn(
-                new LineupReferenceData(Map.of(), Map.of()));
 
         boolean completed = matchLineupService.backfillLineup(MATCH_ID);
 
@@ -127,7 +129,8 @@ class MatchLineupServiceTest {
         assertThat(lineupPlayerRepository.findAll()).isEmpty();
         assertThat(matchRepository.findById(MATCH_ID).orElseThrow().getLineupSyncStatus())
                 .isEqualTo("pending");
-        then(lineupReferenceSyncService).should().syncApiReferences(anyList());
+        // 양 팀 명단이 없을 때 이미지 동기화를 시작하지 않아야 한다.
+        then(lineupReferenceSyncService).shouldHaveNoInteractions();
     }
 
     private Match createMatch() {

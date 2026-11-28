@@ -1,6 +1,8 @@
 package backend.manuhub.match.dto;
 
 import backend.manuhub.match.Match;
+import backend.manuhub.lineup.dto.MatchLineupResponse;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.time.LocalDateTime;
 import java.util.regex.Matcher;
@@ -19,9 +21,15 @@ public record MatchResponse(
         VenueResponse venue,
         TeamResponse homeTeam,
         TeamResponse awayTeam,
-        ScoreResponse score
+        ScoreResponse score,
+        // 일정 목록에는 라인업 필드를 표시하지 않고 단건 상세에만 포함한다.
+        @JsonInclude(JsonInclude.Include.NON_NULL) MatchLineupResponse lineup
 ) {
     public static MatchResponse from(Match match) {
+        return from(match, null);
+    }
+
+    public static MatchResponse from(Match match, MatchLineupResponse lineup) {
         return new MatchResponse(
                 match.getMatchId(),
                 match.getDate(),
@@ -40,7 +48,8 @@ public record MatchResponse(
                         match.getAwayTeamLogo(),
                         match.getAwayTeamWinner()
                 ),
-                ScoreResponse.from(match)
+                ScoreResponse.from(match),
+                lineup
         );
     }
 

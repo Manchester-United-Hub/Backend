@@ -19,6 +19,25 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     List<Match> findAllByMatchIdIn(Set<Long> matchIds);
 
+    // 킥오프 45·30·15분 전의 1분 구간에 속한 경기만 매분 조회한다.
+    @Query("""
+            select m from Match m
+            where m.status = :notStartedStatus
+              and ((m.date >= :before45Start and m.date < :before45End)
+                or (m.date >= :before30Start and m.date < :before30End)
+                or (m.date >= :before15Start and m.date < :before15End))
+            order by m.date asc
+            """)
+    List<Match> findPreMatchLineupSyncTargets(
+            @Param("notStartedStatus") String notStartedStatus,
+            @Param("before45Start") LocalDateTime before45Start,
+            @Param("before45End") LocalDateTime before45End,
+            @Param("before30Start") LocalDateTime before30Start,
+            @Param("before30End") LocalDateTime before30End,
+            @Param("before15Start") LocalDateTime before15Start,
+            @Param("before15End") LocalDateTime before15End
+    );
+
     // 오래된 NS 데이터의 반복 API 호출만 막고 실제 진행 중인 경기는 시간과 관계없이 계속 갱신한다.
     @Query("""
             select m

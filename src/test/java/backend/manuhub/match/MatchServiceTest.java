@@ -4,6 +4,9 @@ import backend.manuhub.exception.ErrorCode;
 import backend.manuhub.exception.ManuHubException;
 import backend.manuhub.match.dto.MatchListResponse;
 import backend.manuhub.match.dto.MatchResponse;
+import backend.manuhub.lineup.MatchLineupService;
+import backend.manuhub.lineup.dto.MatchLineupResponse;
+import backend.manuhub.matchevent.MatchEventService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +32,12 @@ class MatchServiceTest {
 
     @Mock
     private MatchRepository matchRepository;
+
+    @Mock
+    private MatchLineupService matchLineupService;
+
+    @Mock
+    private MatchEventService matchEventService;
 
     @InjectMocks
     private MatchService matchService;
@@ -75,10 +84,17 @@ class MatchServiceTest {
     void getsMatchByMatchId() {
         Match match = createMatch(102L, LocalDateTime.of(2025, 9, 20, 23, 0), 3, 2);
         when(matchRepository.findById(102L)).thenReturn(Optional.of(match));
+        MatchLineupResponse lineup = new MatchLineupResponse(
+                102L, MatchLineupResponse.LineupStatus.NOT_AVAILABLE, null, null);
+        when(matchLineupService.getLineup(102L)).thenReturn(lineup);
 
         MatchResponse result = matchService.getMatch(102L);
 
         assertMatchResponse(result, match);
+        // 종료 경기 상세에 라인업을 붙이고 누락된 데이터 보충 경로를 호출하는지 확인한다.
+        assertEquals(lineup, result.lineup());
+        verify(matchLineupService).backfillLineup(102L);
+        verify(matchEventService).getMatchEvents(102L);
         verify(matchRepository).findById(102L);
     }
 
