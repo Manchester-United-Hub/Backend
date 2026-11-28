@@ -4,6 +4,9 @@ import backend.manuhub.exception.ErrorCode;
 import backend.manuhub.exception.ManuHubException;
 import backend.manuhub.match.dto.MatchListResponse;
 import backend.manuhub.match.dto.MatchResponse;
+import backend.manuhub.lineup.MatchLineupService;
+import backend.manuhub.lineup.dto.MatchLineupResponse;
+import backend.manuhub.matchevent.MatchEventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +35,8 @@ public class MatchService {
     private final Clock clock;
 
     private final MatchRepository matchRepository;
+    private final MatchLineupService matchLineupService;
+    private final MatchEventService matchEventService;
 
     @Transactional(readOnly = true)
     public MatchListResponse getMatches(Integer season) {
@@ -40,11 +45,17 @@ public class MatchService {
         return MatchListResponse.from(matches, LocalDateTime.now(KOREA_ZONE));
     }
 
-    @Transactional(readOnly = true)
+    // 저장 서비스가 각자 트랜잭션을 마친 뒤 경기 상세에 필요한 기록을 조합한다.
     public MatchResponse getMatch(Long matchId) {
-        return matchRepository.findById(matchId)
-                .map(MatchResponse::from)
+        Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new ManuHubException(ErrorCode.NOT_FOUND_ERROR));
+        if (match.isFinished()) {
+            // 종료 경기는 저장된 라인업과 이벤트를 우선 사용하고 누락분만 보충한다.
+            matchLineupService.backfillLineup(matchId);
+            matchEventService.getMatchEvents(matchId);
+        }
+        MatchLineupResponse lineup = matchLineupService.getLineup(matchId);
+        return MatchResponse.from(match, lineup);
     }
 
     @Transactional(readOnly = true)
