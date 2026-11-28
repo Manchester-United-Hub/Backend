@@ -1,6 +1,8 @@
 package backend.manuhub.matchevent;
 
 import backend.manuhub.match.Match;
+import backend.manuhub.lineup.MatchLineupRefreshEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import backend.manuhub.matchevent.dto.MatchEventListGetResponse;
 import backend.manuhub.matchevent.dto.MatchEventResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +32,7 @@ public class MatchEventUpdateServiceTest {
     private static final Long MATCH_ID = 1557450L;
 
     @Mock private MatchEventRepository repository;
+    @Mock private ApplicationEventPublisher eventPublisher;
     @InjectMocks private MatchEventUpdateService updateService;
 
     @Captor private ArgumentCaptor<List<MatchEvent>> entitiesCaptor;
@@ -52,6 +55,8 @@ public class MatchEventUpdateServiceTest {
 
         verify(repository, never()).deleteAllByMatchId(any());
         verify(repository, never()).saveAll(any());
+        // 이벤트가 그대로면 라인업 SSE 갱신도 발행하지 않는다.
+        verify(eventPublisher, never()).publishEvent(any(MatchLineupRefreshEvent.class));
     }
 
     @Test
@@ -64,6 +69,7 @@ public class MatchEventUpdateServiceTest {
         verify(repository).saveAll(entitiesCaptor.capture());
         assertThat(entitiesCaptor.getValue()).hasSize(1);
         assertThat(entitiesCaptor.getValue().get(0).getElapsedMinute()).isEqualTo(34);
+        verify(eventPublisher).publishEvent(new MatchLineupRefreshEvent(MATCH_ID));
     }
 
     @Test
