@@ -1,11 +1,13 @@
 package backend.manuhub.matchevent;
 
 import backend.manuhub.match.Match;
+import backend.manuhub.lineup.MatchLineupRefreshEvent;
 import backend.manuhub.matchevent.dto.MatchEventListGetResponse;
 import backend.manuhub.matchevent.dto.MatchEventResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -17,6 +19,7 @@ import java.util.List;
 public class MatchEventUpdateService {
 
     private final MatchEventRepository repository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void updateMatchEvents(Match match, List<MatchEventResponse> events) {
         List<MatchEventResponse> existsMatchEvents = repository.findAllByMatch_MatchIdOrderByIdAsc(match.getMatchId()).stream()
@@ -29,6 +32,8 @@ public class MatchEventUpdateService {
         repository.saveAll(events.stream()
                 .map(r -> toEntity(match, r))
                 .toList());
+        // 이벤트가 정정되면 선수별 기록을 다시 조합해 커밋 후 구독자에게 보낸다.
+        eventPublisher.publishEvent(new MatchLineupRefreshEvent(match.getMatchId()));
     }
 
     public MatchEventListGetResponse updateLiveMatchEvents(List<MatchEventResponse> events, Match match) {
@@ -38,6 +43,9 @@ public class MatchEventUpdateService {
 
         repository.deleteAllByMatchId(match.getMatchId());
         List<MatchEvent> savedMatchEvents = repository.saveAll(matchEventList);
+
+        // 진행 중 경기의 골·카드·교체 변경을 선수별 라인업 SSE에도 반영한다.
+        eventPublisher.publishEvent(new MatchLineupRefreshEvent(match.getMatchId()));
 
         return MatchEventListGetResponse.of(match.getMatchId(), savedMatchEvents);
     }
